@@ -1,0 +1,20 @@
+.logo__cursor{
+    background: purple;
+    width: 2px;
+    height: 1.2rem;
+    margin-left: 2px;
+}
+
+.post-cover{
+    height: 280px;
+    max-width: 860px;
+    object-fit: cover;
+}
+
+.logo__mark {
+    display: none;
+}
+
+.footer{
+    display: none;
+}
