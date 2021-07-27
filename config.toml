@@ -1,0 +1,40 @@
+baseurl = "/"
+languageCode = "en-us"
+theme = "hello-friend"
+
+[params]
+  contentTypeName = "posts"
+  defaultTheme = "dark"
+  showMenuItems = 3
+  showReadingTime = true
+
+[languages]
+  [languages.en]
+    title = ""
+    subtitle = ""
+    keywords = ""
+    copyright = ""
+    menuMore = "Show more"
+    writtenBy = ""
+    readMore = "Read more"
+    readOtherPosts = "Read other posts"
+    newerPosts = "Newer posts"
+    olderPosts = "Older posts"
+    minuteReadingTime = "min read"
+    dateFormatSingle = "2006-01-02"
+    dateFormatList = "2006-01-02"
+
+    [languages.en.params.logo]
+      logoText = "k0rventen:~"
+      logoHomeLink = "/"
+      
+    [languages.en.menu]
+      [[languages.en.menu.main]]
+        identifier = "manpage"
+        name = "manpage"
+        url = "/manpage"
+
+      [[languages.en.menu.main]]
+        identifier = "posts"
+        name = "posts"
+        url = "/"
