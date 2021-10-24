@@ -73,20 +73,20 @@ curl -fsSL https://get.docker.com | sh sudo usermod -aG docker $USER then edit t
 <p>If you want to control a docker instance (the docker daemon) which is not your machine, you can expose it as a TCP socket (instead of a traditionnal UNIX socket) and connect to it remotely using the docker client. We&rsquo;ll also use SSH forwarding to secure the connection to the docker api if security is a concern.</p>
 <h2 id=how>how</h2>
 <p>Install docker</p>
-<pre><code>curl -fsSL https://get.docker.com | sh
+<pre tabindex=0><code>curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
 </code></pre><p>then edit the systemd service unit by adding the <code>-H tcp://0.0.0.0:2375</code> to the <code>ExecStart</code> options.</p>
-<pre><code>sudo systemctl edit docker.service
+<pre tabindex=0><code>sudo systemctl edit docker.service
 
 [Service]
 ExecStart=
 ExecStart=/usr/bin/dockerd -H tcp://0.0.0.0:2375 --containerd=/run/containerd/containerd.sock
 </code></pre><p>reload & restart</p>
-<pre><code>sudo systemctl daemon-reload
+<pre tabindex=0><code>sudo systemctl daemon-reload
 sudo systemctl restart docker.service
 </code></pre><p>FYI, the first <code>ExecStart=</code> is to <em>remove</em> the corresponding statement from the docker.service unit file. If we omit this, systemd will complain like <code>Service has more than one ExecStart= setting, which is only allowed for Type=oneshot services. Refusing.</code></p>
 <p>We can check on the server that docker is indeed listening on port 2375 by running <code>sudo ss -tulnp | grep 2375</code>:</p>
-<pre><code>tcp    LISTEN  0       4096                        *:2375               *:*      users:((&quot;dockerd&quot;,pid=11239,fd=7)) 
+<pre tabindex=0><code>tcp    LISTEN  0       4096                        *:2375               *:*      users:((&quot;dockerd&quot;,pid=11239,fd=7)) 
 </code></pre><p>On our local machine we should now be able to do <code>docker -H &lt;server_ip:2375> ps</code>.</p>
 <p><strong>Important note</strong>: using <code>-p</code> or <code>-v</code> will not forward ports/volumes on your local machine but on the server.</p>
 <h3 id=ssh-tunnel>ssh tunnel</h3>
@@ -101,13 +101,13 @@ sudo systemctl restart docker.service
 </ul>
 <p>You can now do <code>docker -H tcp://127.0.0.1:8375 ps</code> from our local machine, we we are now connecting through our port <code>8375</code>, which is forwarded by SSH to the port <code>2375</code> of the server.</p>
 <p>But we we have a look at the ssh man page, we can read this for <code>-L</code>:</p>
-<pre><code>     -L [bind_address:]port:host:hostport
+<pre tabindex=0><code>     -L [bind_address:]port:host:hostport
      -L [bind_address:]port:remote_socket
      -L local_socket:host:hostport
      -L local_socket:remote_socket
 </code></pre><p>I was intrigued by <code>[bind_address:]port:remote_socket</code>, specifically by <code>remote_socket</code>. That would mean we can also forward unix socket. We know that on the server, the docker API is also exposed on <code>/var/run/docker.sock</code>.</p>
 <p>let&rsquo;s try <code>ssh -L 8375:/var/run/docker.sock -N &lt;remote_user>@&lt;server_ip></code>. We should redirect the docker unix socket on the server to our host&rsquo;s port <code>8375</code>.</p>
-<pre><code>&gt; docker -H tcp://127.0.0.1:8375 ps
+<pre tabindex=0><code>&gt; docker -H tcp://127.0.0.1:8375 ps
 CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
 </code></pre><p>sure enough, it works !</p>
 <p>As a bonus point we could disable completely the use of a TCP connection now, as we are using the unix socket on the server.</p>

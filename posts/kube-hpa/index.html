@@ -132,7 +132,7 @@ channel <span style=color:#f92672>=</span> connection<span style=color:#f92672>.
 </ul>
 <p>The worker takes around .8s to process the job. Based on how many jobs per second are sent by the server, we might run into a situation where the worker is overloaded, and can&rsquo;t keep up. Jobs will just pile up, and that&rsquo;s not good. But it&rsquo;s also pointless to just scale the workers manually, eg <code>k scale deploy worker --replicas 6</code>, and have <em>too many</em> instances just waiting when no jobs are sent, but 6 might be not enough if we encounter a spike in usage.</p>
 <p>To follow along, create the following resources :</p>
-<pre><code># namespace
+<pre tabindex=0><code># namespace
 k create ns hpa
 
 # rabbitmq message bus
@@ -148,7 +148,7 @@ k create -n hpa deploy worker --image=k0rventen/hpa-worker
 <h2 id=hpa-based-on-cpu-usage>HPA based on CPU usage</h2>
 <p>For the autoscaling to work, we need to specify what cpu usage percent is considered a threshold to spawn new instances. With metric-server, we have the raw cpu usage for each pod (let say our worker consume 900m cpu). But that doesn&rsquo;t translate into percentage until we specify limits for our containers. For that, we&rsquo;ll edit the worker deployment, and add resource limits to the container spec:</p>
 <p><code>k edit deploy/worker -n hpa</code></p>
-<pre><code>    ...
+<pre tabindex=0><code>    ...
     spec:
       containers:
       - image: k0rventen/hpa-worker
@@ -168,7 +168,7 @@ k create -n hpa deploy worker --image=k0rventen/hpa-worker
 <li><code>--cpu-percent</code> is the percentage of CPU usage above which the autoscaler will add new instances (and vice-versa).</li>
 </ul>
 <p>We can check what the hpa is doing with <code>kz describe hpa -n hpa worker</code> :</p>
-<pre><code>Events:
+<pre tabindex=0><code>Events:
   Type    Reason             Age    From                       Message
   ----    ------             ----   ----                       -------
   Normal  SuccessfulRescale  4m18s  horizontal-pod-autoscaler  New size: 3; reason: cpu resource utilization (percentage of request) above target
@@ -177,7 +177,7 @@ k create -n hpa deploy worker --image=k0rventen/hpa-worker
 </code></pre><p>On the rabbitmq dashboard, we can see the number of messages queued going downhill since the activation of the HPA :</p>
 <p><img src=/kube-hpa/rabbitmq.png alt></p>
 <p>And once the queued messages are all processed, the workers&rsquo;s CPU usage will drop, and the HPA will decrease the number of replicas to match that level of load. In our case it might drop to 2 or 3 replicas :</p>
-<pre><code>Events:
+<pre tabindex=0><code>Events:
   Type    Reason             Age    From                       Message
   ----    ------             ----   ----                       -------
   Normal  SuccessfulRescale  24m    horizontal-pod-autoscaler  New size: 3; reason: cpu resource utilization (percentage of request) above target

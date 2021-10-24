@@ -87,7 +87,7 @@ Applying this philosophy to kube is a very pertinent thing to do, but how ?">
 </ul>
 <p>This might not be the simplest approach, as a simple sleep->kill->message->loop would have sufficed, but this is also about learning the ins-and-outs of the language.</p>
 <p>the project is hosted <a href=https://github.com/k0rventen/macaque>here</a>, and can be deployed on any cluster in 3 commands:</p>
-<pre><code># download the spec file
+<pre tabindex=0><code># download the spec file
 curl -LO https://raw.githubusercontent.com/k0rventen/macaque/main/macaque.yml
 
 # edit the env vars to match your config
@@ -104,6 +104,12 @@ kubectl apply -f macaque.yml
 <hr>
 </div>
 <div class=pagination__buttons>
+<span class="button previous">
+<a href=/posts/reducing-docker-images-size-using-xz/>
+<span class=button__icon>←</span>
+<span class=button__text>Reducing Docker Images Size Using Xz</span>
+</a>
+</span>
 <span class="button next">
 <a href=/posts/kube-hpa/>
 <span class=button__text>Exploring Kube's Horizontal Pod Autoscaler</span>

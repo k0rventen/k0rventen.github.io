@@ -105,15 +105,15 @@ apiVersion: v1 kind: ServiceAccount metadata: name: readonly namespace: &amp;lt;
   <span style=color:#f92672>verbs</span>: [<span style=color:#e6db74>&#34;get&#34;</span>, <span style=color:#e6db74>&#34;watch&#34;</span>, <span style=color:#e6db74>&#34;list&#34;</span>]
 </code></pre></div><p>apply it <code>k apply -f user.yml</code></p>
 <p>Now grab the secret for that serviceaccount:</p>
-<pre><code>k get secrets | grep readonly
+<pre tabindex=0><code>k get secrets | grep readonly
 </code></pre><p>Tht will be something like <code>readonly-token-wkp94</code>.
 Then grab the secret&rsquo;s token, <strong>and decode it from b64</strong></p>
-<pre><code>k get -o yaml secrets readonly-token-wkp94 | grep token:
+<pre tabindex=0><code>k get -o yaml secrets readonly-token-wkp94 | grep token:
 
 echo &lt;token&gt; | base64 -d
 </code></pre><p>You can now pass this token to whatever you need to.</p>
 <p>If you need to setup a new human access (using kubectl for example) :</p>
-<pre><code>kubectl config set-credentials newuser --token=&quot;&lt;token&gt;&quot;
+<pre tabindex=0><code>kubectl config set-credentials newuser --token=&quot;&lt;token&gt;&quot;
 
 kubectl config set-context newuser-access --cluster=&lt;clustername&gt; --user=newuser
 
