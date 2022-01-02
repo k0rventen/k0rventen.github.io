@@ -1,6 +1,6 @@
 data
-layouts
 archetypes
 resources
 public
 *.wip.md
+*.lock

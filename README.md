@@ -6,5 +6,20 @@ the src is in the main branch, and each commit triggers the rendering of the sit
 
 uses the [hello-friend theme](https://github.com/panr/hugo-theme-hello-friend). 
 
-to generate locally, run either `hugo server` and go to localhost:1313, or `hugo` and check the public folder.
+to generate locally:
 
+```sh
+# clone the repo
+git clone https://github.com/k0rventen/k0rventen.github.io
+cd k0rventen.github.io
+
+# add the theme submodule
+git submodule init 
+git submodule update
+
+# render and serve on :1313
+hugo server
+
+# just render
+hugo
+```
