@@ -1,0 +1,380 @@
+<!doctype html><html lang=en>
+<head>
+<title>
+Remote, multi-user VSCode running in kubernetes ::
+</title>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=description content="a fully featured, multi-user, dev env running on your k8s cluster that can coldboot in less than 10s
+There should have been a video here but your browser does not seem to support it.  what &amp;amp; why I use VS Code as my primary IDE for everything, from python development, to kubernetes/helm chart generation, even when building stuff for raspberry pico or arduino.
+My daily workflow at work is :">
+<meta name=keywords content>
+<meta name=robots content="noodp">
+<link rel=canonical href=/posts/remote-mulituser-vscode-kubernetes/>
+<link rel=stylesheet href=/assets/style.css>
+<link rel=stylesheet href=/style.css>
+<link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png>
+<link rel="shortcut icon" href=/img/favicon.png>
+<link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin>
+<link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin>
+<link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin>
+<link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin>
+<link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin>
+<link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin>
+<meta name=twitter:card content="summary">
+<meta name=twitter:title content="Remote, multi-user VSCode running in kubernetes">
+<meta name=twitter:description content="a better work environment">
+<meta property="og:title" content="Remote, multi-user VSCode running in kubernetes">
+<meta property="og:description" content="a better work environment">
+<meta property="og:type" content="article">
+<meta property="og:url" content="/posts/remote-mulituser-vscode-kubernetes/"><meta property="article:section" content="posts">
+<meta property="article:published_time" content="2022-01-01T09:27:19+02:00">
+<meta property="article:modified_time" content="2022-01-01T09:27:19+02:00">
+</head>
+<body class=dark-theme>
+<div class=container>
+<header class=header>
+<span class=header__inner>
+<a href=/ class=logo style=text-decoration:none>
+<span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
+</span>
+<span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span>
+</a>
+<span class=header__right>
+<nav class=menu>
+<ul class="menu__inner menu__inner--desktop">
+<li><a href=/manpage>manpage</a></li>
+<li><a href=/>posts</a></li>
+</ul>
+<ul class="menu__inner menu__inner--mobile">
+<li><a href=/manpage>manpage</a></li>
+<li><a href=/>posts</a></li>
+</ul>
+</nav>
+<span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+</span>
+<span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg>
+</span>
+</span>
+</span>
+</header>
+<div class=content>
+<div class=post>
+<h1 class=post-title>Remote, multi-user VSCode running in kubernetes</h1>
+<div class=post-meta>
+<span class=post-date>
+2022-01-01
+</span>
+<span class=post-read-time>— 7 min read</span>
+</div>
+<div class=post-content>
+<p><em>a fully featured, multi-user, dev env running on your k8s cluster that can coldboot in less than 10s</em></p>
+<video class=video-shortcode preload=auto controls autoplay>
+<source src=/remote-vscode/demo.mp4 type=video/mp4>
+There should have been a video here but your browser does not seem to support it.
+</video>
+<h1 id=what--why>what & why</h1>
+<p>I use VS Code as my primary IDE for everything, from python development, to kubernetes/helm chart generation, even when building stuff for raspberry pico or arduino.</p>
+<p>My daily workflow at work is :</p>
+<ul>
+<li>develop on vscode, mostly python/go,</li>
+<li>have docker installed and build my images on my computer,</li>
+<li>push them on a local (LAN) k8s cluster with a registry,</li>
+<li>redeploy on the cluster using <a href=https://skaffold.dev>skaffold</a> by targeting the registry.</li>
+</ul>
+<p>But having most of the work done on my computer is not ideal. I need to have a shitload of stuff installed (vscode, dependencies, docker (which on mac runs on a vm).. ), and I have a massive cluster doing absolutely nothing out of that flow. So the goal here is to leverage as much as I possibly can from the server, and have the most lightweight local environment possible.</p>
+<p>And because this will be used to work as a team, we need this to be multi-user.</p>
+<p>Basically we want to go from that:</p>
+<p><img src=/remote-vscode/current.png alt=now></p>
+<p>to that :</p>
+<p><img src=/remote-vscode/next.png alt=next></p>
+<p>With all that said, let&rsquo;s deploy a multi user vscode environment in our kubernetes cluster !</p>
+<h1 id=how>how</h1>
+<p>There is 2 main components that we&rsquo;ll need to make this:</p>
+<ul>
+<li>a docker image that will be ran in our cluster, and that will include everything we need</li>
+<li>a way of using this image as our remote environment</li>
+</ul>
+<p>(I assume an already running kubernetes cluster, if not there is a link to a guide in the second section)</p>
+<h2 id=step-1-making-a-code-server-docker-image>step 1: making a code-server docker image</h2>
+<p>The guys at CoderHQ have made a version of vscode that can run remotely (<a href=https://github.com/coder/code-server)>https://github.com/coder/code-server)</a>, and the interface is available through HTTP.</p>
+<p>So we&rsquo;ll use that to have VS Code running remotely. But we might want other things to be installed too, like a specific language env, a different shell&mldr;</p>
+<p>Here is the Dockerfile I use, that installs some utils for kubernetes, python, code-server and the fish shell:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-dockerfile data-lang=dockerfile><span style=color:#75715e># base</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> ubuntu:20.04</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># tools, shell, language support</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> apt update<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> DEBIAN_FRONTEND<span style=color:#f92672>=</span>noninteractive apt install curl htop git dnsutils less fish nano openssh-client python3 python3-pip python3-venv -y --no-install-recommends<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># k8s tools (docker client, kubectl, k9s, skaffold)</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> --from<span style=color:#f92672>=</span>docker:dind /usr/local/bin/docker /usr/local/bin/docker<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> curl -Lo kubectl  <span style=color:#e6db74>&#34;https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl&#34;</span> <span style=color:#f92672>&amp;&amp;</span> install kubectl /usr/local/bin/kubectl<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> curl -Lo skaffold <span style=color:#e6db74>&#34;https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64&#34;</span> <span style=color:#f92672>&amp;&amp;</span> install skaffold /usr/local/bin/skaffold <span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> curl -Lo k9s.tar.gz <span style=color:#e6db74>&#34;https://github.com/derailed/k9s/releases/download/v0.25.8/k9s_Linux_x86_64.tar.gz&#34;</span> <span style=color:#f92672>&amp;&amp;</span> tar xvf k9s.tar.gz k9s <span style=color:#f92672>&amp;&amp;</span> install k9s /usr/local/bin/k9s<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># code-server</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> curl -fsSL https://code-server.dev/install.sh | sh<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># config &amp; cleanup (set shell, copy config, apt cleanup.. )</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> chsh -s /usr/bin/fish<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> config/ /tmp/code<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> chmod a+x /tmp/code/bootstrap.fish<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> rm kubectl skaffold k9s.tar.gz k9s<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> apt-get clean <span style=color:#f92672>&amp;&amp;</span> rm -rf /var/lib/apt/lists/* /var/tmp/*<span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># mounted work dir</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>WORKDIR</span><span style=color:#e6db74> /root/projects</span><span style=color:#960050;background-color:#1e0010>
+</span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>CMD</span> [<span style=color:#e6db74>&#34;/tmp/code/bootstrap.fish&#34;</span>]<span style=color:#960050;background-color:#1e0010>
+</span></code></pre></div><p>the <code>/tmp/code/bootstrap.fish</code> mentionned as the CMD is a script that creates some dirs, moves config in the right places, then starts vscode:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=color:#75715e>#! /usr/bin/fish
+</span><span style=color:#75715e></span><span style=color:#75715e># copies the default config to the home dir is not present</span>
+<span style=color:#75715e># and launches code-server as main process</span>
+
+<span style=color:#66d9ef>if</span> test ! -e /root/.code
+    echo <span style=color:#e6db74>&#34;creating ssh keys&#34;</span>
+    mkdir /root/.ssh
+    chmod <span style=color:#ae81ff>700</span> /root/.ssh
+    ssh-keygen -b <span style=color:#ae81ff>2048</span> -N <span style=color:#e6db74>&#34;&#34;</span> -f /root/.ssh/id_rsa
+    
+    echo <span style=color:#e6db74>&#34;creating python venv&#34;</span>
+    python3 -m venv /root/dev-env
+    
+    echo <span style=color:#e6db74>&#34;creating config directories&#34;</span>
+    mkdir -p /root/.config/code-server/data
+    mkdir -p /root/.config/code-server/extensions
+    mkdir -p /root/.config/fish
+
+    echo <span style=color:#e6db74>&#34;copying config&#34;</span>
+    mv -v /tmp/code/config.fish   /root/.config/fish/config.fish
+    mv -v /tmp/code/config.yaml   /root/.config/code-server/config.yaml
+    touch /root/.code
+end
+
+echo <span style=color:#e6db74>&#34;starting code server&#34;</span>
+exec code-server --config<span style=color:#f92672>=</span>/root/.config/code-server/config.yaml /root/projects
+</code></pre></div><p>We need to do this when the container starts instead of when generating the image, because the <code>/root</code> folder will be mounted as a volume in our container, making our work data and project persistant, even if we upgrade the image or restart the container.</p>
+<p>Also, the <code>config.yaml</code> from the exec line at the end is the code-server config to use. It binds to port 8080, sets the config paths, disables auth, telemetry & update checs.</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>bind-addr</span>: <span style=color:#ae81ff>0.0.0.0</span>:<span style=color:#ae81ff>8080</span>
+<span style=color:#f92672>auth</span>: <span style=color:#ae81ff>none</span>
+<span style=color:#f92672>user-data-dir</span>: <span style=color:#e6db74>&#34;/root/.config/code-server/data&#34;</span>
+<span style=color:#f92672>extensions-dir</span>: <span style=color:#e6db74>&#34;/root/.config/code-server/extensions&#34;</span>
+<span style=color:#f92672>cert</span>: <span style=color:#66d9ef>false</span>
+<span style=color:#f92672>disable-telemetry</span>: <span style=color:#66d9ef>true</span>
+<span style=color:#f92672>disable-update-check</span>: <span style=color:#66d9ef>true</span>
+</code></pre></div><p>If we were to start this image locally using docker with <code>-p 8080:8080</code>, we would find a vscode running on that port.</p>
+<h2 id=step-2-managing-users-through-jupyterhub>step 2: managing users through jupyterhub</h2>
+<p>Using a single code-server is not a viable option because we would appear a a single user and each user would overlap with each other, and storage would be a mess. Each user would need its own folder, and not to mess with others, etc.. Not practical.</p>
+<p>So to manage that, we&rsquo;ll use jupyterhub ! From their github repo (<a href=https://github.com/jupyterhub/jupyterhub)>https://github.com/jupyterhub/jupyterhub)</a>:</p>
+<p><em>With JupyterHub you can create a multi-user Hub that spawns, manages, and proxies multiple instances of the single-user Jupyter notebook server.</em></p>
+<p><em>Project Jupyter created JupyterHub to support many users. The Hub can offer notebook servers to a class of students, a corporate data science workgroup, a scientific research project, or a high-performance computing group.</em></p>
+<p>And some smart folks have put an amazing tutorial here: <a href=https://zero-to-jupyterhub.readthedocs.io/en/latest/index.html>https://zero-to-jupyterhub.readthedocs.io/en/latest/index.html</a> !</p>
+<p>So for everything related to the basic setup, you can just follow along with their tutorial.
+It boils down to installing kube and installing helm.</p>
+<p>We will also install docker as we only installed the client in our container, and will mount the docker socket in our pod. Note that this is not the <strong>most</strong> secure approach, and might get revised in the future.</p>
+<p>It is also favorable to install an ingress with kubernetes, as that will allow us to use a proper DNS name with HTTPS to access our vscode.</p>
+<p>The next step from the guide is to actually install jupyterhub. For that, we&rsquo;ll use this <code>values.yaml</code>:</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>singleuser</span>:
+  <span style=color:#f92672>image</span>:
+    <span style=color:#f92672>name</span>: <span style=color:#e6db74>&#34;registry.gitlab.com/alpha-caeli/tooling/code-server&#34;</span> <span style=color:#75715e># where your image is stored</span>
+    <span style=color:#f92672>tag</span>: <span style=color:#e6db74>&#34;latest&#34;</span>
+
+  <span style=color:#f92672>storage</span>:
+    <span style=color:#f92672>homeMountPath</span>: <span style=color:#e6db74>&#34;/root&#34;</span> <span style=color:#75715e># for storage persistence</span>
+
+<span style=color:#f92672>proxy</span>:
+  <span style=color:#f92672>chp</span>:
+    <span style=color:#f92672>extraCommandLineFlags</span>:
+    - <span style=color:#e6db74>&#34;--no-include-prefix&#34;</span>
+  <span style=color:#f92672>secretToken</span>: <span style=color:#ae81ff>seed_a_random_token_here</span> <span style=color:#75715e># change that</span>
+
+<span style=color:#f92672>hub</span>:
+  <span style=color:#f92672>extraConfig</span>:
+    <span style=color:#f92672>code_spawner.py</span>: |<span style=color:#e6db74>
+</span><span style=color:#e6db74>      # use the kubespawner connector
+</span><span style=color:#e6db74>      # https://github.com/jupyterhub/kubespawner
+</span><span style=color:#e6db74>      from kubespawner.spawner import KubeSpawner
+</span><span style=color:#e6db74>      c.JupyterHub.spawner_class = KubeSpawner</span>      
+
+    <span style=color:#f92672>code_settings.py</span>: |<span style=color:#e6db74>
+</span><span style=color:#e6db74>      # run our bootstrap script
+</span><span style=color:#e6db74>      c.KubeSpawner.cmd = []
+</span><span style=color:#e6db74>
+</span><span style=color:#e6db74>      # always pull our image
+</span><span style=color:#e6db74>      c.KubeSpawner.image_pull_policy = &#34;Always&#34;
+</span><span style=color:#e6db74>
+</span><span style=color:#e6db74>      # as our user
+</span><span style=color:#e6db74>      c.KubeSpawner.uid = None
+</span><span style=color:#e6db74>      c.KubeSpawner.gid = None
+</span><span style=color:#e6db74>      c.KubeSpawner.port = 8080
+</span><span style=color:#e6db74>      c.KubeSpawner.mem_guarantee = &#34;400M&#34;
+</span><span style=color:#e6db74>
+</span><span style=color:#e6db74>      # use our own SA
+</span><span style=color:#e6db74>      c.KubeSpawner.service_account = &#34;code-server&#34;
+</span><span style=color:#e6db74>      c.KubeSpawner.automount_service_account_token = True
+</span><span style=color:#e6db74>
+</span><span style=color:#e6db74>      # use user/pass to auth to jupyterhub
+</span><span style=color:#e6db74>      c.JupyterHub.authenticator_class = &#39;firstuseauthenticator.FirstUseAuthenticator&#39;
+</span><span style=color:#e6db74>      c.Authenticator.admin_users = {&#39;admin&#39;}
+</span><span style=color:#e6db74>
+</span><span style=color:#e6db74>      # and mount the docker socket 
+</span><span style=color:#e6db74>      c.KubeSpawner.volume_mounts += [{&#34;mountPath&#34;:&#34;/var/run/docker.sock&#34;,&#34;name&#34;:&#34;docker-sock&#34;},]
+</span><span style=color:#e6db74>      c.KubeSpawner.volumes += [{&#34;name&#34;:&#34;docker-sock&#34;,&#34;hostPath&#34;:{&#34;path&#34;:&#34;/var/run/docker.sock&#34;}}]</span>      
+
+</code></pre></div><p>(don&rsquo;t forget to edit <code>values.yaml</code> with a random token (using <code>openssl rand -hex 32</code> for example) and correct admin user)</p>
+<p>JupyterHub will use the KubeSpawner instance to talk to kubernetes and create <em>on-the-fly</em> a pod whenever a new user connects. Pretty cool.</p>
+<p>Then add the jupyterhub helm chart:</p>
+<pre tabindex=0><code>helm repo add jupyterhub https://jupyterhub.github.io/helm-chart/
+helm repo update
+</code></pre><p>now deploy it :</p>
+<pre tabindex=0><code>helm upgrade --cleanup-on-fail \
+  --install vs-code-remote jupyterhub/jupyterhub \
+  --namespace &lt;namespace&gt; \
+  --version=1.2.0 \
+  --values values.yaml
+</code></pre><p>Wait a bit, then looking for pods with the <code>jupyterhub</code> label should output something like that:</p>
+<pre tabindex=0><code>&gt; k get pods -l app=jupyterhub
+NAME                              READY   STATUS    RESTARTS   AGE
+proxy-757bbc65-6t2hv              1/1     Running   3          26d
+continuous-image-puller-tn6n4     1/1     Running   3          26d
+user-scheduler-7fcb988779-z4zr5   1/1     Running   1          4d8h
+user-scheduler-7fcb988779-sh2kj   1/1     Running   0          3d8h
+hub-6d94767744-xqb6s              1/1     Running   0          2d9h
+</code></pre><p>To access vscode securely, let&rsquo;s create a <code>ingress.yaml</code> that routes the jupyterhub proxy svc to a given dns endpoint.
+Edit the <code>host</code> to match your cluster&rsquo;s DNS endpoint (or none for the IP):</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>extensions/v1beta1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Ingress</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>vs-code-remote</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>rules</span>:
+  - <span style=color:#f92672>host</span>: <span style=color:#ae81ff>code.mycluster.lan</span>
+    <span style=color:#f92672>http</span>:
+      <span style=color:#f92672>paths</span>:
+      - <span style=color:#f92672>backend</span>:
+          <span style=color:#f92672>serviceName</span>: <span style=color:#ae81ff>proxy-public</span>
+          <span style=color:#f92672>servicePort</span>: <span style=color:#ae81ff>80</span>
+        <span style=color:#f92672>path</span>: <span style=color:#ae81ff>/</span>
+        <span style=color:#f92672>pathType</span>: <span style=color:#ae81ff>Prefix</span>
+  <span style=color:#f92672>tls</span>:
+  - <span style=color:#f92672>hosts</span>:
+    - <span style=color:#ae81ff>code.mycluster.lan</span>
+
+---
+<span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Service</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>annotations</span>:
+    <span style=color:#f92672>meta.helm.sh/release-name</span>: <span style=color:#ae81ff>vs-code-remote</span>
+  <span style=color:#f92672>labels</span>:
+    <span style=color:#f92672>app</span>: <span style=color:#ae81ff>jupyterhub</span>
+    <span style=color:#f92672>app.kubernetes.io/managed-by</span>: <span style=color:#ae81ff>Helm</span>
+    <span style=color:#f92672>chart</span>: <span style=color:#ae81ff>jupyterhub-1.2.0</span>
+    <span style=color:#f92672>component</span>: <span style=color:#ae81ff>proxy-public</span>
+    <span style=color:#f92672>heritage</span>: <span style=color:#ae81ff>Helm</span>
+    <span style=color:#f92672>release</span>: <span style=color:#ae81ff>vs-code-remote</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>proxy-public</span>
+<span style=color:#f92672>spec</span>:
+  <span style=color:#f92672>ports</span>:
+  - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>http</span>
+    <span style=color:#f92672>port</span>: <span style=color:#ae81ff>80</span>
+    <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>TCP</span>
+    <span style=color:#f92672>targetPort</span>: <span style=color:#ae81ff>http</span>
+  <span style=color:#f92672>selector</span>:
+    <span style=color:#f92672>component</span>: <span style=color:#ae81ff>proxy</span>
+    <span style=color:#f92672>release</span>: <span style=color:#ae81ff>vs-code-remote</span>
+  <span style=color:#f92672>sessionAffinity</span>: <span style=color:#ae81ff>None</span>
+  <span style=color:#f92672>type</span>: <span style=color:#ae81ff>ClusterIP</span>
+<span style=color:#f92672>status</span>:
+  <span style=color:#f92672>loadBalancer</span>: {}
+</code></pre></div><p>We&rsquo;ll also create a <code>rbac.yaml</code> that creates a dedicated service account for the vs-code pod, so that we can talk to the kube api
+from there (to deploy/restart services).</p>
+<div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+<span style=color:#f92672>automountServiceAccountToken</span>: <span style=color:#66d9ef>true</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ServiceAccount</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>code-server</span>
+---
+<span style=color:#75715e># RB for the SA</span>
+<span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>rbac.authorization.k8s.io/v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>RoleBinding</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>code-server</span>
+<span style=color:#f92672>subjects</span>:
+- <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ServiceAccount</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>code-server</span>
+<span style=color:#f92672>roleRef</span>:
+  <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Role</span>
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>code-server</span>
+  <span style=color:#f92672>apiGroup</span>: <span style=color:#ae81ff>rbac.authorization.k8s.io</span>
+---
+<span style=color:#75715e># Permissions for the SA</span>
+<span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>rbac.authorization.k8s.io/v1</span>
+<span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Role</span>
+<span style=color:#f92672>metadata</span>:
+  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>code-server</span>
+<span style=color:#f92672>rules</span>:
+- <span style=color:#f92672>apiGroups</span>: [<span style=color:#e6db74>&#34;&#34;</span>]
+  <span style=color:#f92672>resources</span>: [<span style=color:#e6db74>&#34;pods&#34;</span>,<span style=color:#e6db74>&#34;pods/log&#34;</span>,<span style=color:#e6db74>&#34;services&#34;</span>,<span style=color:#e6db74>&#34;persistentvolumeclaims&#34;</span>,<span style=color:#e6db74>&#34;configmaps&#34;</span>,<span style=color:#e6db74>&#34;secrets&#34;</span>]
+  <span style=color:#f92672>verbs</span>: [<span style=color:#e6db74>&#34;get&#34;</span>, <span style=color:#e6db74>&#34;list&#34;</span>,<span style=color:#e6db74>&#34;watch&#34;</span>,<span style=color:#e6db74>&#34;create&#34;</span>,<span style=color:#e6db74>&#34;patch&#34;</span>,<span style=color:#e6db74>&#34;update&#34;</span>,<span style=color:#e6db74>&#34;delete&#34;</span>]
+- <span style=color:#f92672>apiGroups</span>: [<span style=color:#e6db74>&#34;apps&#34;</span>]
+  <span style=color:#f92672>resources</span>: [<span style=color:#e6db74>&#34;deployments&#34;</span>,<span style=color:#e6db74>&#34;statefulsets&#34;</span>,<span style=color:#e6db74>&#34;replicasets&#34;</span>,<span style=color:#e6db74>&#34;daemonsets&#34;</span>]
+  <span style=color:#f92672>verbs</span>: [<span style=color:#e6db74>&#34;get&#34;</span>, <span style=color:#e6db74>&#34;list&#34;</span>,<span style=color:#e6db74>&#34;watch&#34;</span>,<span style=color:#e6db74>&#34;create&#34;</span>,<span style=color:#e6db74>&#34;patch&#34;</span>,<span style=color:#e6db74>&#34;update&#34;</span>,<span style=color:#e6db74>&#34;delete&#34;</span>]
+- <span style=color:#f92672>apiGroups</span>: [<span style=color:#e6db74>&#34;networking.k8s.io&#34;</span>]
+  <span style=color:#f92672>resources</span>: [<span style=color:#e6db74>&#34;ingresses&#34;</span>]
+  <span style=color:#f92672>verbs</span>: [<span style=color:#e6db74>&#34;get&#34;</span>, <span style=color:#e6db74>&#34;list&#34;</span>,<span style=color:#e6db74>&#34;watch&#34;</span>,<span style=color:#e6db74>&#34;create&#34;</span>,<span style=color:#e6db74>&#34;patch&#34;</span>,<span style=color:#e6db74>&#34;update&#34;</span>,<span style=color:#e6db74>&#34;delete&#34;</span>]
+</code></pre></div><p>We can apply those now:</p>
+<pre tabindex=0><code># we have to delete the service beforehand because we can't patch when changing the type of Service
+k delete svc proxy-public
+
+#apply our mods
+k apply -f ingress.yaml
+k apply -f rbac.yaml
+</code></pre><p>You can now go to the endpoint, and you&rsquo;ll be greeted by the jupyterhub login page.</p>
+<p><img src=/remote-vscode/jupyterhub-login.png alt=jupyterhub-login></p>
+<p>The first time you login, it will record your user/password combo.</p>
+<p>Once you&rsquo;re in, a pod will be created for your environment, and you should see the familiar vscode interface.</p>
+<video class=video-shortcode preload=auto controls autoplay>
+<source src=/remote-vscode/demo.mp4 type=video/mp4>
+There should have been a video here but your browser does not seem to support it.
+</video>
+<p>And voila! You can now use the power of your cluster to handle the majority</p>
+</div>
+<div class=pagination>
+<div class=pagination__title>
+<span class=pagination__title-h>Read other posts</span>
+<hr>
+</div>
+<div class=pagination__buttons>
+<span class="button next">
+<a href=/posts/reducing-docker-images-size-using-xz/>
+<span class=button__text>Reducing Docker Images Size Using Xz</span>
+<span class=button__icon>→</span>
+</a>
+</span>
+</div>
+</div>
+</div>
+</div>
+<footer class=footer>
+<div class=footer__inner>
+<a href=/ class=logo style=text-decoration:none>
+<span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
+</span>
+<span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span>
+</a>
+<div class=copyright>
+<span>© 2022 Powered by
+<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
+<span>Theme created by
+<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span>
+</div>
+</div>
+</footer>
+<script src=/assets/main.js></script>
+<script src=/assets/prism.js></script>
+</div>
+</body>
+</html>
