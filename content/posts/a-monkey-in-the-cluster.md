@@ -1,8 +1,8 @@
 ---
 title: "A Monkey in the Cluster"
-date: 2021-08-11T08:49:41+02:00
+date: 2021-08-11
 description: "apply the Chaos Engineering principles to k8s"
-tags: []
+tags: ["k8s","chaos-engineering"]
 ---
 
 ## what & why 

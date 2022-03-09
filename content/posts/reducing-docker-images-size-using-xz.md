@@ -1,8 +1,8 @@
 ---
 title: "Reducing Docker Images Size Using Xz"
-date: 2021-09-24T20:14:09+02:00
+date: 2021-09-24
 description: "Compression-ception"
-tags: []
+tags: ["docker","compression"]
 ---
 
 ## what & why 

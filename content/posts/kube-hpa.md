@@ -1,7 +1,8 @@
 ---
 title: "Exploring Kube's Horizontal Pod Autoscaler"
-date: 2021-07-27T10:42:05+02:00
+date: 2021-07-27
 description: "scale your microservices based on CPU usage"
+tags: ["k8s","hpa","scaling"]
 ---
 
 ## what & why 

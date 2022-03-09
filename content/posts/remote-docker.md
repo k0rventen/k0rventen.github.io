@@ -1,8 +1,8 @@
 ---
 title: "Remote Docker"
-date: 2021-07-11T22:46:19+02:00
+date: 2021-07-11
 description: "using a TCP & UNIX sockets and SSH forwarding"
-tags: []
+tags: ["docker"]
 ---
 
 ## what & why 

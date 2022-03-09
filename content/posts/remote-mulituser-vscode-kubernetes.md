@@ -1,8 +1,8 @@
 ---
 title: "Remote, multi-user VSCode running in kubernetes"
-date: 2022-01-01T09:27:19+02:00
+date: 2022-01-01
 description: "a better work environment"
-tags: []
+tags: ["k8s","vscode","dev"]
 ---
 
 _a fully featured, multi-user, dev env running on your k8s cluster that can coldboot in less than 10s_
