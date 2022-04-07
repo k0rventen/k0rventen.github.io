@@ -1,13 +1,14 @@
 ---
 title: "A basic, security-minded k8s app setup"
 date: 2022-03-09
-draft: true
+draft: false
 description: "Add a layer of security to your deployment without too much hassle"
 tags : ["k8s","security","CKS"]
 ---
 
 
 ## what & why 
+
 
 
 The CKS (Certified Kubernetes Security Specialist) is a great resource for knowing how to secure a kubernetes cluster.
@@ -29,7 +30,7 @@ WORKDIR /app
 COPY src/ ./
 
 ENV PYTHONUNBUFFERED 1
-CMD ["python3","app.py"]
+CMD python3 app.py
 ```
 
 deployment manifest:
@@ -104,14 +105,13 @@ root     2266529  1.8  0.1  28168 23752 ?        Ss   17:31   0:00 /usr/local/bi
 We are actually mapped to the root user ! that's not the most secure setup ! If somehow an attacker gain control of the pod and is able to escape, he will land on the host as the root user.
 
 
-
 And if we use the new Dockerfile with the USER directive:
 ```
 ps -aux | grep flask
 syslog   2267104  2.8  0.1  28168 23812 ?        Ss   17:32   0:00 /usr/local/bin/python3 ./flask-api.py
 ```
 
-What ? Why are we mapped to the syslog user ? A quick check of `/etc/passwd` shows us why :
+What ? Why are we mapped to the syslog user ? A quick check of _/etc/passwd_ shows us why :
 
 ```
 cat /etc/passwd | grep 101
@@ -126,14 +126,12 @@ To avoid clashing with a potential user with the same uid on the host, we can us
 
 To fix that, we will tweak our `deploy.yaml`:
 ```yaml
-...
       containers:
       - name: api
         image: registry/api:latest
         securityContext:
           runAsUser: 60096
           runAsGroup: 60096
-...
 ```
 
 Now, from the host side, we will appear as uid `60096`, which isn't mapped to a predefined user (unless a user with the same uid exists on the host obviously). 
@@ -154,17 +152,35 @@ This will block any attempt to modify the filesystem of the container, like inst
           runAsGroup: 60096
 ```
 
+Now if we try to change something, we'll be greeted by an error message, preventing any change on the root fs:
 
+```
+ERROR: Unable to lock database: Read-only file system
+ERROR: Failed to open apk database: Read-only file system
+```
+
+If our app needs to be able to write in a given folder (like a /tmp/cache folder for caching), we can create a volumeMount in the deployment, mapped to an 'emptyDir'. This will allow the app to write at this folder, while retaining the read-only root fs:
+
+```yaml
+      containers:
+      - name: api
+        image: registry/api:latest
+        volumeMounts:
+        - mountPath: /tmp/cache
+          name: cache-volume
+      volumes:
+      - name: cache-volume
+        emptyDir: {}
+```
 
 ### automountServiceAccountToken
+
 If the pod is not going to communicate with the kubernetes API, we can avoid mounting the service account's token in the pod (which by default will be mounted in `/var/run/secrets/kubernetes.io/serviceaccount/token`):
 
 ```yaml
-...
     spec:
       automountServiceAccountToken: false
       containers:
-...
 ```
 
 
@@ -173,7 +189,6 @@ If the pod is not going to communicate with the kubernetes API, we can avoid mou
 While we're on the deployment, it's also a good idea to set some resources limits on the pod. This will prevent the pods from consuming all the resources from the host, which even if it's from a genuine mistake, can result in outages or other disurptions:
 
 ```yaml
-...
       containers:
       - name: api
         image: registry/api:latest
@@ -184,7 +199,6 @@ While we're on the deployment, it's also a good idea to set some resources limit
           requests:
             cpu: 100m
             memory: 64Mi
-...
 ```
 
 `requests` will tell k8s the requirements for the pod, i.e what we can expect the pod to consume. This will aid the scheduling on an appropriate node.
@@ -205,9 +219,13 @@ To do so, we simply add the SHA of the image we want to fix at the end of the ta
 FROM python:3.9-alpine3.15@sha256:f2aeefbeb3846b146a8ad9b995af469d249272af804b309318e2c72c9ca035b0
 ```
 
+We can repeat the same behavior on the deployment. Instead of using `registry/api:latest`, but by using a versionning scheme (like [semver](https://semver.org/) or [calver](https://calver.org/)) and combining this with the SHA of the image, we ensure that the image used in the deployment will not be updated due to upstream changes.
+
+
 ### Results
 Final versions of the Dockerfile and deploy.yaml would look like this:
 
+Dockerfile
 ```dockerfile
 FROM python:3.9-alpine3.15@sha256:f2aeefbeb3846b146a8ad9b995af469d249272af804b309318e2c72c9ca035b0
 COPY requirements.txt .
@@ -222,6 +240,7 @@ ENV PYTHONUNBUFFERED 1
 CMD ["python3","app.py"]
 ```
 
+deploy.yaml
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -239,11 +258,26 @@ spec:
       automountServiceAccountToken: false
       containers:
       - name: api
-        image: registry/api:latest
+        image: registry/api:v1.0.3@sha256:f469d249272af80...
         securityContext:
           readOnlyRootFilesystem: true
           runAsUser: 69096
           runAsGroup: 69096
         ports:
         - containerPort: 5000
+        volumeMounts:
+        - mountPath: /tmp/cache
+          name: cache-volume
+      volumes:
+      - name: cache-volume
+        emptyDir: {}
 ```
+
+
+Theses are simples yet effectives ways to secure your app on k8s. If you want to go deeper, I would suggests checking more advanced topics like host-side security (using apparmor profiles for example), falco , or supply chain security (Open Policy Agent, Admission controllers..). Theses are all topics that are covered by the CKS, and with plenty of information online.
+
+# Further resources
+
+- https://pwning.systems/posts/escaping-containers-for-fun/
+- https://kubernetes.io/docs/concepts/storage/volumes/#emptydir
+- https://kubernetes.io/docs/tasks/configure-pod-container/security-context/

@@ -17,9 +17,9 @@ cd k0rventen.github.io
 git submodule init 
 git submodule update
 
-# render and serve on :1313
-hugo server
+# render and serve on :1313 for development
+hugo server --buildDrafts
 
-# just render
+# just render for production
 hugo
 ```
