@@ -1,69 +1,12 @@
-<!doctype html><html lang=en>
-<head>
-<title>
-Add a new external user (or bot) in k8s ::
-</title><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<meta name=description content="what &amp;amp; why If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.
+<!doctype html><html lang=en><head><title>Add a new external user (or bot) in k8s ::</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="what &amp;amp; why If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.
 how 2022 update Due to newer version of kubectl allowing the creation of ressources through kubectl create, it&amp;rsquo;s now super easy to do so:
 Create a new service account named bot1:
-kubectl create sa bot1 now, create a role (or cluster role) with the wanted permissions.">
-<meta name=keywords content>
-<meta name=robots content="noodp">
-<link rel=canonical href=/posts/kube-user/>
-<link rel=stylesheet href=/assets/style.css>
-<link rel=stylesheet href=/style.css>
-<link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png>
-<link rel="shortcut icon" href=/img/favicon.png>
-<link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<meta name=twitter:card content="summary">
-<meta name=twitter:title content="Add a new external user (or bot) in k8s">
-<meta name=twitter:description content="and do it properly with rbac">
-<meta property="og:title" content="Add a new external user (or bot) in k8s">
-<meta property="og:description" content="and do it properly with rbac">
-<meta property="og:type" content="article">
-<meta property="og:url" content="/posts/kube-user/"><meta property="article:section" content="posts">
-<meta property="article:published_time" content="2022-02-22T00:00:00+00:00">
-<meta property="article:modified_time" content="2022-02-22T00:00:00+00:00">
-</head><body class=dark-theme>
-<div class=container>
-<header class=header>
-<span class=header__inner>
-<a href=/ class=logo style=text-decoration:none>
-<span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span>
-<span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a>
-<span class=header__right>
-<nav class=menu>
-<ul class="menu__inner menu__inner--desktop">
-<li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile">
-<li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span>
-<span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg>
-</span>
-</span>
-</span>
-</header><div class=content>
-<div class=post>
-<h1 class=post-title>Add a new external user (or bot) in k8s</h1><div class=post-meta>
-<span class=post-date>
-2022-02-22
-</span>
-<span class=post-read-time>— 3 min read</span>
-</div><span class=post-tags>
-<a href=/tags/k8s/>#k8s</a>&nbsp;
+kubectl create sa bot1 now, create a role (or cluster role) with the wanted permissions."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/kube-user/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Add a new external user (or bot) in k8s"><meta name=twitter:description content="and do it properly with rbac"><meta property="og:title" content="Add a new external user (or bot) in k8s"><meta property="og:description" content="and do it properly with rbac"><meta property="og:type" content="article"><meta property="og:url" content="/posts/kube-user/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2022-02-22T00:00:00+00:00"><meta property="article:modified_time" content="2022-02-22T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a>
+<span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Add a new external user (or bot) in k8s</h1><div class=post-meta><span class=post-date>2022-02-22</span>
+<span class=post-read-time>— 3 min read</span></div><span class=post-tags><a href=/tags/k8s/>#k8s</a>&nbsp;
 <a href=/tags/rbac/>#rbac</a>&nbsp;
-<a href=/tags/security/>#security</a>&nbsp;
-</span>
-<div class=post-content>
-<h1 id=what--why>what & why</h1><p>If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.</p><h1 id=how>how</h1><h3 id=2022-update>2022 update</h3><p>Due to newer version of kubectl allowing the creation of ressources through <code>kubectl create</code>, it&rsquo;s now super easy to do so:</p><p>Create a new service account named <code>bot1</code>:</p><pre tabindex=0><code>kubectl create sa bot1
+<a href=/tags/security/>#security</a>&nbsp;</span><div class=post-content><h1 id=what--why>what & why</h1><p>If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.</p><h1 id=how>how</h1><h3 id=2022-update>2022 update</h3><p>Due to newer version of kubectl allowing the creation of ressources through <code>kubectl create</code>, it&rsquo;s now super easy to do so:</p><p>Create a new service account named <code>bot1</code>:</p><pre tabindex=0><code>kubectl create sa bot1
 </code></pre><p>now, create a role (or cluster role) with the wanted permissions. Let&rsquo;s say that the bot which will be using the service account will only need to get, list and watch pods and deployments in his namespace (default). (Further documentation can be retrieved using <code>kubectl create role -h</code>)</p><pre tabindex=0><code>kubectl create role bot1-pods --verb=get,list,watch --resource=pods,deploy
 </code></pre><p>Now, we&rsquo;ll just bind the role (or cluster role) with our service account, using a rolebinding:</p><p><em>the service account must be specified using namespace:sa</em></p><pre tabindex=0><code>kubectl create rolebinding --serviceaccount default:bot1 --role bot1-pods bot1-pods
 </code></pre><p>Using impersonnation, we can test the newly created service account&rsquo;s permissions:</p><p>can the account get pods ?</p><pre tabindex=0><code>&gt; kubectl auth can-i --as &#34;system:serviceaccount:default:bot1&#34; get pods
@@ -115,30 +58,12 @@ echo &lt;token&gt; | base64 -d
 kubectl config set-context newuser-access --cluster=&lt;clustername&gt; --user=newuser
 
 kubectl config use-context newuser-access
-</code></pre><p>you should now be able to use kubectl, but with the permissions of that serviceAccount.</p></div><div class=pagination>
-<div class=pagination__title>
-<span class=pagination__title-h>Read other posts</span>
-<hr>
-</div><div class=pagination__buttons>
-<span class="button next">
-<a href=/posts/remote-mulituser-vscode-kubernetes/>
-<span class=button__text>Remote, multi-user VSCode running in kubernetes</span>
-<span class=button__icon>→</span>
-</a>
-</span>
-</div></div></div></div><footer class=footer>
-<div class=footer__inner>
-<a href=/ class=logo style=text-decoration:none>
-<span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span>
-<span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a>
-<div class=copyright>
-<span>© 2022 Powered by
+</code></pre><p>you should now be able to use kubectl, but with the permissions of that serviceAccount.</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/basic-k8s-security/><span class=button__icon>←</span>
+<span class=button__text>A basic, security-minded k8s app setup</span></a></span>
+<span class="button next"><a href=/posts/remote-mulituser-vscode-kubernetes/><span class=button__text>Remote, multi-user VSCode running in kubernetes</span>
+<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a><div class=copyright><span>© 2022 Powered by
 <a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
 <span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span>
-</div></div></footer><script src=/assets/main.js></script>
-<script src=/assets/prism.js></script>
-</div></body></html>
+<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script>
+<script src=/assets/prism.js></script></div></body></html>

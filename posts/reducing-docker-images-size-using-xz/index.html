@@ -1,67 +1,10 @@
-<!doctype html><html lang=en>
-<head>
-<title>
-Reducing Docker Images Size Using Xz ::
-</title><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<meta name=description content="what &amp;amp; why During a project, I needed to build a container that could render graphs based on pretty big arrays, using plotly, kaleido and pandas.
+<!doctype html><html lang=en><head><title>Reducing Docker Images Size Using Xz ::</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="what &amp;amp; why During a project, I needed to build a container that could render graphs based on pretty big arrays, using plotly, kaleido and pandas.
 The arrays would be DataFrames from pandas, turned into graphs through plotly, and then renderer as jpeg images using kaleido.
-This is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :">
-<meta name=keywords content>
-<meta name=robots content="noodp">
-<link rel=canonical href=/posts/reducing-docker-images-size-using-xz/>
-<link rel=stylesheet href=/assets/style.css>
-<link rel=stylesheet href=/style.css>
-<link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png>
-<link rel="shortcut icon" href=/img/favicon.png>
-<link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<meta name=twitter:card content="summary">
-<meta name=twitter:title content="Reducing Docker Images Size Using Xz">
-<meta name=twitter:description content="Compression-ception">
-<meta property="og:title" content="Reducing Docker Images Size Using Xz">
-<meta property="og:description" content="Compression-ception">
-<meta property="og:type" content="article">
-<meta property="og:url" content="/posts/reducing-docker-images-size-using-xz/"><meta property="article:section" content="posts">
-<meta property="article:published_time" content="2021-09-24T00:00:00+00:00">
-<meta property="article:modified_time" content="2021-09-24T00:00:00+00:00">
-</head><body class=dark-theme>
-<div class=container>
-<header class=header>
-<span class=header__inner>
-<a href=/ class=logo style=text-decoration:none>
-<span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span>
-<span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a>
-<span class=header__right>
-<nav class=menu>
-<ul class="menu__inner menu__inner--desktop">
-<li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile">
-<li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span>
-<span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg>
-</span>
-</span>
-</span>
-</header><div class=content>
-<div class=post>
-<h1 class=post-title>Reducing Docker Images Size Using Xz</h1><div class=post-meta>
-<span class=post-date>
-2021-09-24
-</span>
-<span class=post-read-time>— 4 min read</span>
-</div><span class=post-tags>
-<a href=/tags/docker/>#docker</a>&nbsp;
-<a href=/tags/compression/>#compression</a>&nbsp;
-</span>
-<div class=post-content>
-<h2 id=what--why>what & why</h2><p>During a project, I needed to build a container that could render graphs based on pretty big arrays, using <code>plotly</code>, <code>kaleido</code> and <code>pandas</code>.</p><p>The arrays would be DataFrames from pandas, turned into graphs through plotly, and then renderer as jpeg images using kaleido.</p><p>This is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :</p><pre tabindex=0><code>root@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh .
+This is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :"><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/reducing-docker-images-size-using-xz/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Reducing Docker Images Size Using Xz"><meta name=twitter:description content="Compression-ception"><meta property="og:title" content="Reducing Docker Images Size Using Xz"><meta property="og:description" content="Compression-ception"><meta property="og:type" content="article"><meta property="og:url" content="/posts/reducing-docker-images-size-using-xz/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2021-09-24T00:00:00+00:00"><meta property="article:modified_time" content="2021-09-24T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a>
+<span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Reducing Docker Images Size Using Xz</h1><div class=post-meta><span class=post-date>2021-09-24</span>
+<span class=post-read-time>— 4 min read</span></div><span class=post-tags><a href=/tags/docker/>#docker</a>&nbsp;
+<a href=/tags/compression/>#compression</a>&nbsp;</span><div class=post-content><h2 id=what--why>what & why</h2><p>During a project, I needed to build a container that could render graphs based on pretty big arrays, using <code>plotly</code>, <code>kaleido</code> and <code>pandas</code>.</p><p>The arrays would be DataFrames from pandas, turned into graphs through plotly, and then renderer as jpeg images using kaleido.</p><p>This is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :</p><pre tabindex=0><code>root@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh .
 536M    .
 
 root@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh * | sort -h | tail -n 5
@@ -84,8 +27,7 @@ flask==2.0.1
 </span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>CMD</span> [<span style=color:#e6db74>&#34;python3&#34;</span>,<span style=color:#e6db74>&#34;-u&#34;</span>,<span style=color:#e6db74>&#34;app.py&#34;</span>]<span style=color:#960050;background-color:#1e0010>
 </span></span></span></code></pre></div><p>That&rsquo;s fine, but the resulting image is quite heavy :</p><pre tabindex=0><code>&gt; docker images | grep renderer
 renderer                  full              35b81d0fd3f7   10 minutes ago   1.5GB
-</code></pre><p>Oh well. A <code>1.5GB</code> container. That&rsquo;s Windows territory ! Surely we can go under a GB.</p><h3 id=multi-layer>multi layer</h3><p>We can use the multi-layer system of docker to build a smaller image.</p><p>Here we have two improvements :</p><ul>
-<li>we are using a <code>slim</code> image as our final layer, which is lighter than the full <code>python:3.9</code>. Note that due to our dependencies, we can&rsquo;t use an <em>alpine</em> based image, otherwise we would have been much lower regarding the size.</li><li>we only copy what we need from the build layer.</li></ul><p>The dockerfile might look like this :</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-dockerfile data-lang=dockerfile><span style=display:flex><span><span style=color:#75715e># build layer</span><span style=color:#960050;background-color:#1e0010>
+</code></pre><p>Oh well. A <code>1.5GB</code> container. That&rsquo;s Windows territory ! Surely we can go under a GB.</p><h3 id=multi-layer>multi layer</h3><p>We can use the multi-layer system of docker to build a smaller image.</p><p>Here we have two improvements :</p><ul><li>we are using a <code>slim</code> image as our final layer, which is lighter than the full <code>python:3.9</code>. Note that due to our dependencies, we can&rsquo;t use an <em>alpine</em> based image, otherwise we would have been much lower regarding the size.</li><li>we only copy what we need from the build layer.</li></ul><p>The dockerfile might look like this :</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-dockerfile data-lang=dockerfile><span style=display:flex><span><span style=color:#75715e># build layer</span><span style=color:#960050;background-color:#1e0010>
 </span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> python:3.9 as builder</span><span style=color:#960050;background-color:#1e0010>
 </span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>WORKDIR</span><span style=color:#e6db74> /build</span><span style=color:#960050;background-color:#1e0010>
 </span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> requirements.txt .<span style=color:#960050;background-color:#1e0010>
@@ -128,40 +70,12 @@ renderer                  full              35b81d0fd3f7   16 minutes ago   1.5G
 renderer                  xz                d1def5592c6e   18 seconds ago   208MB         
 renderer                  slim              5401960f2a66   4 minutes ago    577MB
 renderer                  full              35b81d0fd3f7   16 minutes ago   1.5GB
-</code></pre><p><code>208MB</code>! That&rsquo;s not bad.</p><p>Docker compresses the image when uploaded to the registry, so let&rsquo;s push our images and see what the size differences are there:</p><p><img src=/docker-xz/registry.png alt></p><p>The gains are impressive when using a slim/multi-layer dockerfile. And by compressing our libs we gained 50MB, a ~30% improvement.</p><h2 id=conclusions>conclusions</h2><p>This is fun, but not an ideal solution for handling &ldquo;big&rdquo; containers:</p><ul>
-<li>
-<p>Size-wise, the final container is still 208MB, which is a <code>63%</code> decrease in size!</p></li><li>
-<p>but once uploaded to a registry, and the image being compressed as a whole there, the size decrease by <em>only</em> <code>29%</code>.</p></li><li>
-<p>When starting the container, you&rsquo;ll need to decompress the packages, which (on my machine) took a few seconds. This should also be taken into account.</p></li></ul><p>If network bandwidth was a constraint, this solution will not help much. You&rsquo;ll pull 50MB less, but that&rsquo;s not <em>groundbreaking</em>.</p><p>The only use case I can see is if you have storage limitations on the receiving end, as the savings are much more important once the whole image is decompressed by docker. But you will still need to decompress the package when launching a container with this image, so the gains are limited to the image.</p><p>Despite this whole setup being not-as-practical as I thought it would initially (before reminding myself of the whole docker registry compression..), this could still be <em>somewhat (maybe)</em> useful in the future, so i&rsquo;ll still post it..</p></div><div class=pagination>
-<div class=pagination__title>
-<span class=pagination__title-h>Read other posts</span>
-<hr>
-</div><div class=pagination__buttons>
-<span class="button previous">
-<a href=/posts/remote-mulituser-vscode-kubernetes/>
-<span class=button__icon>←</span>
-<span class=button__text>Remote, multi-user VSCode running in kubernetes</span>
-</a>
-</span>
-<span class="button next">
-<a href=/posts/a-monkey-in-the-cluster/>
-<span class=button__text>A Monkey in the Cluster</span>
-<span class=button__icon>→</span>
-</a>
-</span>
-</div></div></div></div><footer class=footer>
-<div class=footer__inner>
-<a href=/ class=logo style=text-decoration:none>
-<span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span>
-<span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a>
-<div class=copyright>
-<span>© 2022 Powered by
+</code></pre><p><code>208MB</code>! That&rsquo;s not bad.</p><p>Docker compresses the image when uploaded to the registry, so let&rsquo;s push our images and see what the size differences are there:</p><p><img src=/docker-xz/registry.png alt></p><p>The gains are impressive when using a slim/multi-layer dockerfile. And by compressing our libs we gained 50MB, a ~30% improvement.</p><h2 id=conclusions>conclusions</h2><p>This is fun, but not an ideal solution for handling &ldquo;big&rdquo; containers:</p><ul><li><p>Size-wise, the final container is still 208MB, which is a <code>63%</code> decrease in size!</p></li><li><p>but once uploaded to a registry, and the image being compressed as a whole there, the size decrease by <em>only</em> <code>29%</code>.</p></li><li><p>When starting the container, you&rsquo;ll need to decompress the packages, which (on my machine) took a few seconds. This should also be taken into account.</p></li></ul><p>If network bandwidth was a constraint, this solution will not help much. You&rsquo;ll pull 50MB less, but that&rsquo;s not <em>groundbreaking</em>.</p><p>The only use case I can see is if you have storage limitations on the receiving end, as the savings are much more important once the whole image is decompressed by docker. But you will still need to decompress the package when launching a container with this image, so the gains are limited to the image.</p><p>Despite this whole setup being not-as-practical as I thought it would initially (before reminding myself of the whole docker registry compression..), this could still be <em>somewhat (maybe)</em> useful in the future, so i&rsquo;ll still post it..</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/remote-mulituser-vscode-kubernetes/><span class=button__icon>←</span>
+<span class=button__text>Remote, multi-user VSCode running in kubernetes</span></a></span>
+<span class="button next"><a href=/posts/a-monkey-in-the-cluster/><span class=button__text>A Monkey in the Cluster</span>
+<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a><div class=copyright><span>© 2022 Powered by
 <a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
 <span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span>
-</div></div></footer><script src=/assets/main.js></script>
-<script src=/assets/prism.js></script>
-</div></body></html>
+<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script>
+<script src=/assets/prism.js></script></div></body></html>

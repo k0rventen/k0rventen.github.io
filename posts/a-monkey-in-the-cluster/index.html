@@ -1,68 +1,10 @@
-<!doctype html><html lang=en>
-<head>
-<title>
-A Monkey in the Cluster ::
-</title><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<meta name=description content="what &amp;amp; why From principlesofchaos.org :
+<!doctype html><html lang=en><head><title>A Monkey in the Cluster ::</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="what &amp;amp; why From principlesofchaos.org :
 Advances in large-scale, distributed software systems are changing the game for software engineering. As an industry, we are quick to adopt practices that increase flexibility of development and velocity of deployment. An urgent question follows on the heels of these benefits: How much confidence we can have in the complex systems that we put into production?
-Applying this philosophy to kube is a very pertinent thing to do, but how ?">
-<meta name=keywords content>
-<meta name=robots content="noodp">
-<link rel=canonical href=/posts/a-monkey-in-the-cluster/>
-<link rel=stylesheet href=/assets/style.css>
-<link rel=stylesheet href=/style.css>
-<link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png>
-<link rel="shortcut icon" href=/img/favicon.png>
-<link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin>
-<meta name=twitter:card content="summary">
-<meta name=twitter:title content="A Monkey in the Cluster">
-<meta name=twitter:description content="apply the Chaos Engineering principles to k8s">
-<meta property="og:title" content="A Monkey in the Cluster">
-<meta property="og:description" content="apply the Chaos Engineering principles to k8s">
-<meta property="og:type" content="article">
-<meta property="og:url" content="/posts/a-monkey-in-the-cluster/"><meta property="article:section" content="posts">
-<meta property="article:published_time" content="2021-08-11T00:00:00+00:00">
-<meta property="article:modified_time" content="2021-08-11T00:00:00+00:00">
-</head><body class=dark-theme>
-<div class=container>
-<header class=header>
-<span class=header__inner>
-<a href=/ class=logo style=text-decoration:none>
-<span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span>
-<span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a>
-<span class=header__right>
-<nav class=menu>
-<ul class="menu__inner menu__inner--desktop">
-<li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile">
-<li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span>
-<span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg>
-</span>
-</span>
-</span>
-</header><div class=content>
-<div class=post>
-<h1 class=post-title>A Monkey in the Cluster</h1><div class=post-meta>
-<span class=post-date>
-2021-08-11
-</span>
-<span class=post-read-time>— 3 min read</span>
-</div><span class=post-tags>
-<a href=/tags/k8s/>#k8s</a>&nbsp;
-<a href=/tags/chaos-engineering/>#chaos-engineering</a>&nbsp;
-</span>
-<div class=post-content>
-<h2 id=what--why>what & why</h2><p>From <a href=https://principlesofchaos.org>principlesofchaos.org</a> :</p><p><em>Advances in large-scale, distributed software systems are changing the game for software engineering. As an industry, we are quick to adopt practices that increase flexibility of development and velocity of deployment. An urgent question follows on the heels of these benefits: How much confidence we can have in the complex systems that we put into production?</em></p><p>Applying this philosophy to kube is a very pertinent thing to do, but how ? The same website defines Chaos Engineering as <em>the discipline of experimenting on a system in order to build confidence in the system’s capability to withstand turbulent conditions in production.</em></p><p>So, let&rsquo;s introduce <em>turbulences</em> in our cluster.</p><p>Netflix developed their <a href=https://netflix.github.io/chaosmonkey/>Chaos Monkey</a> a while back, and this is basically the same thing, applied to kubernetes concepts.</p><p>A monkey, in the cluster, breaking things. The easiest route for this is attacking the primary Kube resource, pods. Let&rsquo;s terminate some random pods and see what happens.</p><p>We are sure that kubernetes <strong>will</strong> restart our pods if we have defined any kind of top level management over them (such as deployments, daemonsets, etc..). Killing a pod is about testing whether our application can withstand it.</p><h2 id=how>how</h2><p>This is also my first <em>real</em> golang project, using some of the language&rsquo;s specific features about concurrency (go routines, channels) and structs.</p><p>The project is made of 3 go routines, each communicating with the other using channels. The configuration is handled through a struct.</p><ul>
-<li>The main routine is a simple <em>sleeps until the next cron occurence, notify the killer routine, repeat</em> loop.</li><li>The killer routine waits for a message from the main routine, then list pods that match the criterias, select one of them and terminate it, and sends a message to the slack routine about what happened.</li><li>the slack routine, which waits for a message and simply transmits the message to the channel (if any).</li></ul><p>This might not be the simplest approach, as a simple sleep->kill->message->loop would have sufficed, but this is also about learning the ins-and-outs of the language.</p><p>the project is hosted <a href=https://github.com/k0rventen/macaque>here</a>, and can be deployed on any cluster in 3 commands:</p><pre tabindex=0><code># download the spec file
+Applying this philosophy to kube is a very pertinent thing to do, but how ?"><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/a-monkey-in-the-cluster/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="A Monkey in the Cluster"><meta name=twitter:description content="apply the Chaos Engineering principles to k8s"><meta property="og:title" content="A Monkey in the Cluster"><meta property="og:description" content="apply the Chaos Engineering principles to k8s"><meta property="og:type" content="article"><meta property="og:url" content="/posts/a-monkey-in-the-cluster/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2021-08-11T00:00:00+00:00"><meta property="article:modified_time" content="2021-08-11T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a>
+<span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>A Monkey in the Cluster</h1><div class=post-meta><span class=post-date>2021-08-11</span>
+<span class=post-read-time>— 3 min read</span></div><span class=post-tags><a href=/tags/k8s/>#k8s</a>&nbsp;
+<a href=/tags/chaos-engineering/>#chaos-engineering</a>&nbsp;</span><div class=post-content><h2 id=what--why>what & why</h2><p>From <a href=https://principlesofchaos.org>principlesofchaos.org</a> :</p><p><em>Advances in large-scale, distributed software systems are changing the game for software engineering. As an industry, we are quick to adopt practices that increase flexibility of development and velocity of deployment. An urgent question follows on the heels of these benefits: How much confidence we can have in the complex systems that we put into production?</em></p><p>Applying this philosophy to kube is a very pertinent thing to do, but how ? The same website defines Chaos Engineering as <em>the discipline of experimenting on a system in order to build confidence in the system’s capability to withstand turbulent conditions in production.</em></p><p>So, let&rsquo;s introduce <em>turbulences</em> in our cluster.</p><p>Netflix developed their <a href=https://netflix.github.io/chaosmonkey/>Chaos Monkey</a> a while back, and this is basically the same thing, applied to kubernetes concepts.</p><p>A monkey, in the cluster, breaking things. The easiest route for this is attacking the primary Kube resource, pods. Let&rsquo;s terminate some random pods and see what happens.</p><p>We are sure that kubernetes <strong>will</strong> restart our pods if we have defined any kind of top level management over them (such as deployments, daemonsets, etc..). Killing a pod is about testing whether our application can withstand it.</p><h2 id=how>how</h2><p>This is also my first <em>real</em> golang project, using some of the language&rsquo;s specific features about concurrency (go routines, channels) and structs.</p><p>The project is made of 3 go routines, each communicating with the other using channels. The configuration is handled through a struct.</p><ul><li>The main routine is a simple <em>sleeps until the next cron occurence, notify the killer routine, repeat</em> loop.</li><li>The killer routine waits for a message from the main routine, then list pods that match the criterias, select one of them and terminate it, and sends a message to the slack routine about what happened.</li><li>the slack routine, which waits for a message and simply transmits the message to the channel (if any).</li></ul><p>This might not be the simplest approach, as a simple sleep->kill->message->loop would have sufficed, but this is also about learning the ins-and-outs of the language.</p><p>the project is hosted <a href=https://github.com/k0rventen/macaque>here</a>, and can be deployed on any cluster in 3 commands:</p><pre tabindex=0><code># download the spec file
 curl -LO https://raw.githubusercontent.com/k0rventen/macaque/main/macaque.yml
 
 # edit the env vars to match your config
@@ -70,36 +12,12 @@ $EDITOR macaque.yml
 
 # apply (make sure you are in the right ns)
 kubectl apply -f macaque.yml
-</code></pre><p>The containers are available for both <code>amd64</code> and <code>arm64</code>. The RBAC configuration is included in the spec file, the pod needs <em>list</em> and <em>delete</em> of the <strong>pods</strong> resource in the current namespace.</p><p>The configuration is done through env var. You <em>must</em> specify the crontab spec and the namespace in which to kill pods, and you <em>can</em> add a label selector to narrow the targets, add a slack token and channel ID to be informed when the monkey does things.</p></div><div class=pagination>
-<div class=pagination__title>
-<span class=pagination__title-h>Read other posts</span>
-<hr>
-</div><div class=pagination__buttons>
-<span class="button previous">
-<a href=/posts/reducing-docker-images-size-using-xz/>
-<span class=button__icon>←</span>
-<span class=button__text>Reducing Docker Images Size Using Xz</span>
-</a>
-</span>
-<span class="button next">
-<a href=/posts/kube-hpa/>
-<span class=button__text>Exploring Kube's Horizontal Pod Autoscaler</span>
-<span class=button__icon>→</span>
-</a>
-</span>
-</div></div></div></div><footer class=footer>
-<div class=footer__inner>
-<a href=/ class=logo style=text-decoration:none>
-<span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span>
-<span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a>
-<div class=copyright>
-<span>© 2022 Powered by
+</code></pre><p>The containers are available for both <code>amd64</code> and <code>arm64</code>. The RBAC configuration is included in the spec file, the pod needs <em>list</em> and <em>delete</em> of the <strong>pods</strong> resource in the current namespace.</p><p>The configuration is done through env var. You <em>must</em> specify the crontab spec and the namespace in which to kill pods, and you <em>can</em> add a label selector to narrow the targets, add a slack token and channel ID to be informed when the monkey does things.</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/reducing-docker-images-size-using-xz/><span class=button__icon>←</span>
+<span class=button__text>Reducing Docker Images Size Using Xz</span></a></span>
+<span class="button next"><a href=/posts/kube-hpa/><span class=button__text>Exploring Kube's Horizontal Pod Autoscaler</span>
+<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a><div class=copyright><span>© 2022 Powered by
 <a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
 <span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span>
-</div></div></footer><script src=/assets/main.js></script>
-<script src=/assets/prism.js></script>
-</div></body></html>
+<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script>
+<script src=/assets/prism.js></script></div></body></html>
