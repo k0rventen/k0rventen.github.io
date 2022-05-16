@@ -1,7 +1,6 @@
 ---
 title: "Autoscaling using KEDA"
 date: 2022-05-16
-draft: true
 description: "Scale workloads based on a rabbitMQ queue's metrics"
 tags : ["k8s","scaling","KEDA"]
 ---
@@ -19,7 +18,7 @@ It's quite easy to do that using the Horizontal Pod Autoscaler (HPA), and I made
 
 But some workloads can't scale based on a CPU usage metrics for example, and we need another metric that better describe the load being applied to the system, and how it should respond to that load. 
 
-Enter, [KEDA](https://keda.sh/), the Kubernetes Event Driven Autoscaler. The goal of KEDA is to manage sources of metrics that can be used for autoscaling, and apply the corresponding scaling of resources.
+Enter [KEDA](https://keda.sh/), the Kubernetes Event Driven Autoscaler. The goal of KEDA is to manage sources of metrics that can be used for autoscaling, and apply the corresponding scaling of resources.
 
 
 ## how
@@ -63,7 +62,7 @@ k create -n app deploy producer --image=k0rventen/hpa-server
 k create -n app deploy worker --image=k0rventen/hpa-worker
 ```
 
-`k0rventen/hpa-server` and `k0rventen/hpa-worker` are the containers that act as producers and consumers based on a `foo` rabbitmq queue
+`k0rventen/hpa-server` and `k0rventen/hpa-worker` are the containers that act as producers and consumers based on a `foo` rabbitmq queue.
  
 If we check the rabbitMQ queue, we can see the number of message is pilling up, because our single worker can't handle the number of messages emitted by the producer. To do that, we can setup a port-forward between us and the rabbitmq interface: 
 
@@ -76,7 +75,7 @@ and then go to `http://127.0.0.1:15672`. default creds are `guest:guest`.
 
 
 ### Installation
-Now, let's install KEDA, following their documentation:
+Now, let's install KEDA, following their [documentation](https://keda.sh/docs/2.7/deploy/):
 
 ```sh
 helm repo add kedacore https://kedacore.github.io/charts
@@ -158,8 +157,8 @@ The file contains the following ressources:
   Decoding it gives `http://guest:guest@rabbitmq.app:15672//`. 
   
   This is the URL that KEDA will use to connect to RabbitMQ.
-  We specify the namespace, because KEDA will try to connect to rabbit from its own pod in the `keda` namespace.
-  The last / is the name of the rabitmq vhost, which by default is /.
+  Note that we specify the namespace of the `rabbitmq` service, because KEDA will try to connect to rabbit from its own pod in the `keda` namespace.
+  The last `/` in the URL is the name of the rabitmq vhost, which by default is /.
 
 - a TriggerAuthentication CRD that references the secret above, and binds it to a `host` key.
 
@@ -208,7 +207,7 @@ worker-58b8d8c67f-6hbss     0/1     ContainerCreating   0             0s
 
 Another great advantage of using a message queue and this approach is that if no messages are in the queue, there is no need to have any worker at idle.
 
-If we lower the minimum number of workers to 0, and if the queue does not have any messages in the queue for a given period of time, KEDA will simply scale to 0 the workers. And if a message is pushed to the queue, this will be trigger KEDA to scale up the workers to handle the request. That's pretty handy in situations where we want 'on-demand' scaling based on the current load.
+If we lower the minimum number of workers to 0, and if the queue does not have any messages for a given period of time, KEDA will simply scale to 0 the workers. And if a message is pushed to the queue, this will be trigger KEDA to scale up the workers to handle the request. That's pretty handy in situations where we want 'on-demand' scaling based on the current load.
 
 We can tweak the various parameters to improve the responsiveness of the scaling using
 - [the KEDA docs](https://keda.sh/docs/2.6/concepts/scaling-deployments/)
