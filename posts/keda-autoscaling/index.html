@@ -1,0 +1,108 @@
+<!doctype html><html lang=en><head><title>Autoscaling using KEDA ::</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="Scale workloads based on the size of a rabbitMQ queue automatically, and have on-demand processing for any tasks
+There should have been a video here but your browser does not seem to support it.  A sped up example of autoscaling using KEDA with a rabbitMQ setup
+what &amp;amp; why Kubernetes is a great fit for autoscaling, and it already has a built-in system for doing autoscaling based on the metrics-server infos, like CPU usage for a pod."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/keda-autoscaling/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Autoscaling using KEDA"><meta name=twitter:description content="Scale workloads based on a rabbitMQ queue's metrics"><meta property="og:title" content="Autoscaling using KEDA"><meta property="og:description" content="Scale workloads based on a rabbitMQ queue's metrics"><meta property="og:type" content="article"><meta property="og:url" content="/posts/keda-autoscaling/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2022-05-16T00:00:00+00:00"><meta property="article:modified_time" content="2022-05-16T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a>
+<span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Autoscaling using KEDA</h1><div class=post-meta><span class=post-date>2022-05-16</span>
+<span class=post-read-time>— 6 min read</span></div><span class=post-tags><a href=/tags/k8s/>#k8s</a>&nbsp;
+<a href=/tags/scaling/>#scaling</a>&nbsp;
+<a href=/tags/keda/>#KEDA</a>&nbsp;</span><div class=post-content><p><em>Scale workloads based on the size of a rabbitMQ queue automatically, and have on-demand processing for any tasks</em></p><video class=video-shortcode preload=auto controls autoplay>
+<source src=/keda/keda_run.mp4 type=video/mp4>There should have been a video here but your browser does not seem to support it.</video><p><em><a href=#screencast>A sped up example of autoscaling using KEDA with a rabbitMQ setup</a></em></p><h2 id=what--why>what & why</h2><p>Kubernetes is a great fit for autoscaling, and it already has a built-in system for doing autoscaling based on the metrics-server infos, like CPU usage for a pod.
+It&rsquo;s quite easy to do that using the Horizontal Pod Autoscaler (HPA), and I made a demo system with it (here)[/posts/kube-hpa].</p><p>But some workloads can&rsquo;t scale based on a CPU usage metrics for example, and we need another metric that better describe the load being applied to the system, and how it should respond to that load.</p><p>Enter <a href=https://keda.sh/>KEDA</a>, the Kubernetes Event Driven Autoscaler. The goal of KEDA is to manage sources of metrics that can be used for autoscaling, and apply the corresponding scaling of resources.</p><h2 id=how>how</h2><p>Let&rsquo;s say I have producers that emits messages in the queue, each being a payload to process. On the other side of the queue are workers, which can process said payloads.</p><p>This could represent a client-server model where a client would request something to be processed, and our workers would handle each request. A real-world example could be a PDF report generation service, where users can request reports to be generated from arbitrary data. Or an platform ingesting various types of incoming data (say payloads from IOT devices) where incoming traffic is very variable.</p><p>In our specific use case, the producers and workers will be simple python container, with a rabbitMQ message broker in between.</p><p>Keda provides a lot of integrations with various sources, message queues, cloud provider tools.. The list of their integrations can be found <a href=https://keda.sh/docs/2.7/scalers/>on their site</a>.</p><p>We&rsquo;ll focus on the rabbitMQ integration for now, but the general flow is the same regardless of the integration:</p><ul><li>We instruct KEDA on the workload that should be scaled, and the settings aroung it (like the min and max number of replicas to have depending on the load),</li><li>KEDA connects to a source of metrics that represents the <code>load</code> of the system,</li><li>Depending on the current and past metric, KEDA tells kube to scale up or down the workload.</li></ul><p>Here is a schema of how KEDA operates:</p><p><img src=https://keda.sh/img/keda-arch.png alt=keda-arch></p><h2 id=setup>setup</h2><p>To deploy our system , we&rsquo;ll use the same setup as the previous post on scaling:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># namespace</span>
+</span></span><span style=display:flex><span>k create ns app
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># rabbitmq message bus</span>
+</span></span><span style=display:flex><span>k create -n app deploy rabbitmq --image rabbitmq:3-management --port <span style=color:#ae81ff>5672</span> --port <span style=color:#ae81ff>15672</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># expose rabbitMQ so we can check the UI and KEDA can check its status</span>
+</span></span><span style=display:flex><span>k expose -n app deploy/rabbitmq --port 5672,15672
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># producer </span>
+</span></span><span style=display:flex><span>k create -n app deploy producer --image<span style=color:#f92672>=</span>k0rventen/hpa-server
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># worker</span>
+</span></span><span style=display:flex><span>k create -n app deploy worker --image<span style=color:#f92672>=</span>k0rventen/hpa-worker
+</span></span></code></pre></div><p><code>k0rventen/hpa-server</code> and <code>k0rventen/hpa-worker</code> are the containers that act as producers and consumers based on a <code>foo</code> rabbitmq queue.</p><p>If we check the rabbitMQ queue, we can see the number of message is pilling up, because our single worker can&rsquo;t handle the number of messages emitted by the producer. To do that, we can setup a port-forward between us and the rabbitmq interface:</p><pre tabindex=0><code>kubectl port-forward svc/rabbitmq 15672 -n app
+</code></pre><p>and then go to <code>http://127.0.0.1:15672</code>. default creds are <code>guest:guest</code>.</p><h3 id=installation>Installation</h3><p>Now, let&rsquo;s install KEDA, following their <a href=https://keda.sh/docs/2.7/deploy/>documentation</a>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh><span style=display:flex><span>helm repo add kedacore https://kedacore.github.io/charts
+</span></span><span style=display:flex><span>helm repo update
+</span></span><span style=display:flex><span>helm install keda kedacore/keda --create-namespace --namespace keda
+</span></span></code></pre></div><p>You should now have a few pods running in the keda ns.</p><pre tabindex=0><code>&gt; kubectl get pods -n keda
+NAME                                               READY   STATUS    RESTARTS   AGE
+keda-operator-7879dcd589-65t4x                     1/1     Running   0          10m
+keda-operator-metrics-apiserver-54746f8fdc-fs4kb   1/1     Running   1          11m
+</code></pre><h3 id=using-scalers>Using scalers</h3><p>Then, we&rsquo;ll need to connect KEDA to our rabbitMQ queue.
+KEDA works based on <em>scalers</em> that connects to the source of metrics that should be used for scaling,
+We&rsquo;ll also tell KEDA which deployment is our target for autoscaling:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>kind</span>: <span style=color:#ae81ff>Secret</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>metadata</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>keda-rabbitmq-secret</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>data</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>host</span>: <span style=color:#e6db74>&#34;aHR0cDovL2d1ZXN0Omd1ZXN0QHJhYmJpdG1xLmFwcDoxNTY3Mi8v&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>---
+</span></span><span style=display:flex><span><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>keda.sh/v1alpha1</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>kind</span>: <span style=color:#ae81ff>TriggerAuthentication</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>metadata</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>keda-trigger-auth-rabbitmq-conn</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>app</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>spec</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>secretTargetRef</span>:
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>parameter</span>: <span style=color:#ae81ff>host</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>name</span>: <span style=color:#ae81ff>keda-rabbitmq-secret</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>key</span>: <span style=color:#ae81ff>host</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>---
+</span></span><span style=display:flex><span><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>keda.sh/v1alpha1</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ScaledObject</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>metadata</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>worker-autoscaler</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>app</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>spec</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>scaleTargetRef</span>:
+</span></span><span style=display:flex><span>    <span style=color:#f92672>name</span>: <span style=color:#ae81ff>worker</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>minReplicaCount</span>: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>maxReplicaCount</span>: <span style=color:#ae81ff>20</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>pollingInterval</span>: <span style=color:#ae81ff>2</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>cooldownPeriod</span>: <span style=color:#ae81ff>20</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>advanced</span>:
+</span></span><span style=display:flex><span>    <span style=color:#f92672>horizontalPodAutoscalerConfig</span>:
+</span></span><span style=display:flex><span>      <span style=color:#f92672>behavior</span>:
+</span></span><span style=display:flex><span>        <span style=color:#f92672>scaleDown</span>:
+</span></span><span style=display:flex><span>          <span style=color:#f92672>stabilizationWindowSeconds</span>: <span style=color:#ae81ff>20</span>
+</span></span><span style=display:flex><span>          <span style=color:#f92672>policies</span>:
+</span></span><span style=display:flex><span>          - <span style=color:#f92672>type</span>: <span style=color:#ae81ff>Percent</span>
+</span></span><span style=display:flex><span>            <span style=color:#f92672>value</span>: <span style=color:#ae81ff>50</span>
+</span></span><span style=display:flex><span>            <span style=color:#f92672>periodSeconds</span>: <span style=color:#ae81ff>20</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>triggers</span>:
+</span></span><span style=display:flex><span>  - <span style=color:#f92672>type</span>: <span style=color:#ae81ff>rabbitmq</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>metadata</span>:
+</span></span><span style=display:flex><span>      <span style=color:#f92672>protocol</span>: <span style=color:#ae81ff>http</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>queueName</span>: <span style=color:#ae81ff>foo</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>mode</span>: <span style=color:#ae81ff>QueueLength</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;20&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>authenticationRef</span>:
+</span></span><span style=display:flex><span>      <span style=color:#f92672>name</span>: <span style=color:#ae81ff>keda-trigger-auth-rabbitmq-conn</span>
+</span></span></code></pre></div><p>The file contains the following ressources:</p><ul><li><p>A secret which contains the full URL of our rabbitmq instance.
+Decoding it gives <code>http://guest:guest@rabbitmq.app:15672//</code>.</p><p>This is the URL that KEDA will use to connect to RabbitMQ.
+Note that we specify the namespace of the <code>rabbitmq</code> service, because KEDA will try to connect to rabbit from its own pod in the <code>keda</code> namespace.
+The last <code>/</code> in the URL is the name of the rabitmq vhost, which by default is /.</p></li><li><p>a TriggerAuthentication CRD that references the secret above, and binds it to a <code>host</code> key.</p></li><li><p>a ScaledObject CRD that defines our autoscaler:</p><ul><li>the ressource to scale using <code>scaleTargetRef</code>, which is our <code>worker</code> deployment,</li><li>various config settings regarding the scaling (min/max number of replicas, polling rate & cooldown after a ramp up),</li><li>a <code>horizontalPodAutoscalerConfig</code> object that defines the behavior of the HPA:<ul><li>the policy here defines that half the pods can be stopped every period (20s) in a cooldown phase (when the load lightens).</li></ul></li><li>triggers that are used to scale the ressource:<ul><li>in our case:<ul><li>scaling should occur based on the length of the rabbitmq queue <code>foo</code>, and scale workers every <code>20</code> messages in the queue</li><li>and to connect and authenticate to rabbitmq, KEDA shoud use the secret we created.</li></ul></li></ul></li></ul></li></ul><p>We can check on the state of the autoscaler by checking on the ScaledObject ressource :</p><pre tabindex=0><code>&gt; k get scaledobject -n app
+NAME                SCALETARGETKIND      SCALETARGETNAME   MIN   MAX   TRIGGERS   AUTHENTICATION                    READY   ACTIVE   FALLBACK   AGE
+worker-autoscaler   apps/v1.Deployment   worker            1     20    rabbitmq   keda-trigger-auth-rabbitmq-conn   True    True    False      4m12s
+</code></pre><p>If everything went alright, the autoscaler should increase the number of replicas of our worker, to match what is defined in our autoscaling rule.</p><p>We can influence the number of workers created by adjusting the number of producers:</p><pre tabindex=0><code>&gt; k scale deploy -n app producer --replicas &lt;int&gt;
+</code></pre><p>And we can watch the number of workers at the same time:</p><pre tabindex=0><code>&gt; kubectl get pods -n app -w
+NAME                        READY   STATUS    RESTARTS      AGE
+producer-5d9cb496cc-dvk2r   1/1     Running   0             28s
+producer-5d9cb496cc-dwx77   1/1     Running   0             28s
+rabbitmq-58ff5479cf-6657s   1/1     Running   0             67s
+worker-58b8d8c67f-btv4q     1/1     Running   0             7s
+worker-58b8d8c67f-v75lb     1/1     Running   0             17s
+worker-58b8d8c67f-6hbss     0/1     Pending   0             0s
+worker-58b8d8c67f-6hbss     0/1     Pending   0             0s
+worker-58b8d8c67f-6hbss     0/1     ContainerCreating   0             0s
+</code></pre><p>Another great advantage of using a message queue and this approach is that if no messages are in the queue, there is no need to have any worker at idle.</p><p>If we lower the minimum number of workers to 0, and if the queue does not have any messages for a given period of time, KEDA will simply scale to 0 the workers. And if a message is pushed to the queue, this will be trigger KEDA to scale up the workers to handle the request. That&rsquo;s pretty handy in situations where we want &lsquo;on-demand&rsquo; scaling based on the current load.</p><p>We can tweak the various parameters to improve the responsiveness of the scaling using</p><ul><li><a href=https://keda.sh/docs/2.6/concepts/scaling-deployments/>the KEDA docs</a></li><li><a href=https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#configurable-scaling-behavior>the HPA docs</a></li></ul><h3 id=screencast>Screencast</h3><p>The screencast above is a 10 minutes run of the tutorial shown here, 2000x speed. The rabbitMQ interface shows the number of messages in the queue, while the terminal shows the pods being created/terminated by KEDA depending on the load.</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button next"><a href=/posts/basic-k8s-security/><span class=button__text>A basic, security-minded k8s app setup</span>
+<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a><div class=copyright><span>© 2022 Powered by
+<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
+<span>Theme created by
+<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script>
+<script src=/assets/prism.js></script></div></body></html>
