@@ -1,0 +1,10 @@
+# Static File Server
+:8080 {
+  root * /www/blog
+  file_server
+}
+
+# Internal metrics endpoint
+:8081 {
+  metrics
+}
