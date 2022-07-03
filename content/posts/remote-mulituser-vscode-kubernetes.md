@@ -143,7 +143,7 @@ _With JupyterHub you can create a multi-user Hub that spawns, manages, and proxi
 
 _Project Jupyter created JupyterHub to support many users. The Hub can offer notebook servers to a class of students, a corporate data science workgroup, a scientific research project, or a high-performance computing group._
 
-And some smart folks have put an amazing tutorial here:  https://zero-to-jupyterhub.readthedocs.io/en/latest/index.html !
+And some smart folks have put an amazing tutorial [here](https://zero-to-jupyterhub.readthedocs.io/en/latest/index.html) !
 
 So for everything related to the basic setup, you can just follow along with their tutorial.
 It boils down to installing kube and installing helm.
@@ -335,7 +335,7 @@ We can apply those now:
 # we have to delete the service beforehand because we can't patch when changing the type of Service
 k delete svc proxy-public
 
-#apply our mods
+# apply our mods
 k apply -f ingress.yaml
 k apply -f rbac.yaml
 ```
@@ -350,4 +350,4 @@ Once you're in, a pod will be created for your environment, and you should see t
 
 {{< video src="/remote-vscode/demo.mp4" type="video/mp4" preload="auto" >}}
 
-And voila! You can now use the power of your cluster to handle the majority
+And voila! You can now use the power of your cluster to handle the majority of your workflow, while making your laptop cooler and maybe quieter !
