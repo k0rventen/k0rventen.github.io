@@ -30,11 +30,12 @@ theme = "hello-friend"
       
     [languages.en.menu]
       [[languages.en.menu.main]]
+        identifier = "posts"
+        name = "posts"
+        url = "/"
+
+      [[languages.en.menu.main]]
         identifier = "manpage"
         name = "manpage"
         url = "/manpage"
 
-      [[languages.en.menu.main]]
-        identifier = "posts"
-        name = "posts"
-        url = "/"
