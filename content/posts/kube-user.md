@@ -5,19 +5,6 @@ description: "and do it properly with rbac"
 tags: ["k8s","rbac","security"]
 ---
 
-<!-- TOC -->
-
-- [what & why](#what--why)
-- [how](#how)
-    - [A word on RBAC](#a-word-on-rbac)
-    - [Users for humans](#users-for-humans)
-    - [ServiceAccounts for non humans [Updated March 2022]](#serviceaccounts-for-non-humans-updated-march-2022)
-        - [Note for kubernetes >= 1.25](#note-for-kubernetes--125)
-    - [ServiceAccounts [OG July 2021]](#serviceaccounts-og-july-2021)
-    - [Impersonating other users](#impersonating-other-users)
-
-<!-- /TOC -->
-
 # what & why
 
 If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.

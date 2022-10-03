@@ -2,11 +2,14 @@ baseurl = "/"
 languageCode = "en-us"
 theme = "hello-friend"
 
+
 [params]
   contentTypeName = "posts"
   defaultTheme = "dark"
   showMenuItems = 3
   showReadingTime = true
+  toc = true
+  
 
 [languages]
   [languages.en]
@@ -18,6 +21,7 @@ theme = "hello-friend"
     writtenBy = ""
     readMore = "Read more"
     readOtherPosts = "Read other posts"
+    lastModDisplay = "Updated:"
     newerPosts = "Newer posts"
     olderPosts = "Older posts"
     minuteReadingTime = "min read"
