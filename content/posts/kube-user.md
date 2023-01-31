@@ -1,6 +1,7 @@
 ---
 title: "Add a new external user (or bot) in k8s"
 date: 2022-10-03
+lastmod: 2023-01-31
 description: "and do it properly with rbac"
 tags: ["k8s","rbac","security"]
 ---
@@ -11,8 +12,6 @@ If you need to give access to your cluster to either another human or for a give
 
 To authenticate, humans can use both the `ServiceAccount` resource (through a token) and as `Users` (trough a key and crt). Bots or non-human things should only use `ServiceAccounts`.
 
-
-# how
 
 ## A word on RBAC
 
@@ -25,6 +24,8 @@ In Kubernetes, we need to create 3 resources when creating permissions:
 
 
 [k8s doc on RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
+
+# how
 
 ## Users for humans
 
@@ -96,8 +97,10 @@ kubectl create rolebinding --serviceaccount default:bot1 --role bot1-pods bot1-p
 
 nice ! Using only 3 commands we were able to create and configure our service account. Of course if further configuration on the role is needed (to have greater granularity), we can create a proper manifest or edit the ressource, but it gives us a good base to start with.
 
-### Note for kubernetes >= 1.25
-Since kubernetes 1.25 (and 1.24 on some distros), when creating a serviceaccount, kubernetes does not create an associated token containing a token. Instead, we should use `Tokens`:
+### Note for kubernetes >= 1.24 [Updated January 2023]
+Since kubernetes 1.24 (or 1.25 depending on the distro and flag activation), when creating a serviceaccount, kubernetes does not create an associated token containing a token. Release note about the change [here](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md#no-really-you-must-read-this-before-you-upgrade).
+
+Instead, we should use `Tokens`:
 
 ```
 kubectl create token <serviceaccount_name>
