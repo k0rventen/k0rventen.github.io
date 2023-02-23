@@ -1,7 +1,13 @@
 baseurl = "/"
 languageCode = "en-us"
 theme = "hello-friend"
+paginate = 10
 
+[markup]
+  [markup.tableOfContents]
+    startLevel = 0
+    endLevel = 5
+    ordered = false
 
 [params]
   contentTypeName = "posts"
@@ -19,11 +25,11 @@ theme = "hello-friend"
     copyright = ""
     menuMore = "Show more"
     writtenBy = ""
-    readMore = "Read more"
-    readOtherPosts = "Read other posts"
-    lastModDisplay = "Updated:"
-    newerPosts = "Newer posts"
-    olderPosts = "Older posts"
+    readMore = "read more"
+    readOtherPosts = "read other posts"
+    lastModDisplay = "updated"
+    newerPosts = "newer posts"
+    olderPosts = "older posts"
     minuteReadingTime = "min read"
     dateFormatSingle = "2006-01-02"
     dateFormatList = "2006-01-02"
