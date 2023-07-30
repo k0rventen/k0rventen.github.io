@@ -10,7 +10,7 @@ Compression-ception</description></item><item><title>A Monkey in the Cluster</ti
 apply the Chaos Engineering principles to k8s</description></item><item><title>Exploring Kube's Horizontal Pod Autoscaler</title><link>/posts/kube-hpa/</link><pubDate>Tue, 27 Jul 2021 00:00:00 +0000</pubDate><guid>/posts/kube-hpa/</guid><description>
 scale your microservices based on CPU usage</description></item><item><title>Remote Docker</title><link>/posts/remote-docker/</link><pubDate>Sun, 11 Jul 2021 00:00:00 +0000</pubDate><guid>/posts/remote-docker/</guid><description>
 using a TCP &amp; UNIX sockets and SSH forwarding</description></item><item><title>whoami</title><link>/manpage/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>/manpage/</guid><description>
-I&amp;rsquo;m coco (aka k0rventen), 25 yo IT engineer.
+I&amp;rsquo;m coco (aka k0rventen), 26 yo IT engineer.
 Hot topics for me right now are kubernetes, devops &amp;amp; software supply chain.
-As I don&amp;rsquo;t have a very good memory, I needed a place to put various projects and works that i&amp;rsquo;ve already done inside them, so that i won&amp;rsquo;t have to reinvent the wheel each time a similar situation arise.
-But it&amp;rsquo;s also a way of sharing my ideas, solutions etc so that maybe one day it might help someone.</description></item></channel></rss>
+As I don&amp;rsquo;t have a very good memory, this is a place for me to put projects and important or tedious things that I&amp;rsquo;ve done, so that I won&amp;rsquo;t have to reinvent the wheel each time a similar situation arise.
+But it&amp;rsquo;s also a way of sharing my ideas, solutions etc so that maybe one day it might help someone (hi future self).</description></item></channel></rss>
