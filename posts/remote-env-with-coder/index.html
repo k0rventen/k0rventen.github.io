@@ -1,0 +1,421 @@
+<!doctype html><html lang=en><head><title>Remote development in Kubernetes With Coder ::</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="A fleet of remote development environments (with docker, fish shell, and even minikube) running in your kubernetes cluster, accessible through VS Code in the browser !
+There should have been a video here but your browser does not seem to support it. What &amp;amp; why This setup is the v2 of a previous post on remote dev env using jupyterlab I made a year and a half ago. Thee OG setup was functionnal, but it had some issues, mainly around user management, container lifecycle and persistent data handling."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/remote-env-with-coder/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Remote development in Kubernetes With Coder"><meta name=twitter:description content="It's time to live in Kubernetes."><meta property="og:title" content="Remote development in Kubernetes With Coder"><meta property="og:description" content="It's time to live in Kubernetes."><meta property="og:type" content="article"><meta property="og:url" content="/posts/remote-env-with-coder/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2023-06-22T00:00:00+00:00"><meta property="article:modified_time" content="2023-06-22T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a>
+<span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Remote development in Kubernetes With Coder</h1><div class=post-meta><span class=post-date>2023-06-22</span>
+<span class=post-read-time>— 10 min read</span></div><span class=post-tags><a href=/tags/remote/>#remote</a>&nbsp;
+<a href=/tags/k8s/>#k8s</a>&nbsp;
+<a href=/tags/coder/>#coder</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#what--why>What & why</a></li><li><a href=#how>How</a><ul><li><a href=#the-base-image>The Base Image</a></li><li><a href=#the-coder-platform>The Coder platform</a></li><li><a href=#the-custom-kubernetes-provider>The custom Kubernetes provider</a></li><li><a href=#accessing-our-environment>Accessing our environment</a></li><li><a href=#disclaimer>Disclaimer</a></li></ul></li></ul></nav></aside><p><em>A fleet of remote development environments (with docker, fish shell, and even minikube) running in your kubernetes cluster, accessible through VS Code in the browser !</em></p><video class=video-shortcode preload=auto controls autoplay>
+<source src=/coder-remote-env/demo.mp4 type=video/mp4>There should have been a video here but your browser does not seem to support it.</video><h1 id=what--why>What & why</h1><p>This setup is the v2 of a previous post on remote dev env <a href=/posts/remote-mulituser-vscode-kubernetes/>using jupyterlab</a> I made a year and a half ago. Thee OG setup was functionnal, but it had some issues, mainly around user management, container lifecycle and persistent data handling. As $dayjob has grown, so has the infrastructure, and so has the development needs. So a new solution was required.</p><p>A lot of them exists right now for remote environments, from providers like <a href=https://github.com/features/codespaces>Github Codespaces</a>, <a href=https://www.gitpod.io/>Gitpod</a>, or even <a href=https://devpod.sh/>DevPod</a>. But the folks at Coder released <a href=https://github.com/coder/coder>coder v2</a> a while back, and that&rsquo;s what I&rsquo;ve used for managing our team&rsquo;s environments since late 2022.</p><p>The devs needs haven&rsquo;t changed a lot since the first post. Our workflow is cluster-centric, based on skaffold to redeploy our built-on-the-fly-containers as pods directly onto the cluster.</p><h1 id=how>How</h1><p>The stack consists of these parts:</p><ul><li>a docker image that will be used as the base for our remote envs</li><li>a kubernetes cluster, which will host everything,</li><li>the coder platform deployed on said cluster,</li><li>a custom kubernetes provider for running our docker image inside coder, handling some specific needs we have with our dev envs</li></ul><h2 id=the-base-image>The Base Image</h2><p>The idea of the base image is to bake everything needed directly into it: vscode, git, fish shell, docker (running in a Docker-in-Docker fashion). I&rsquo;ve already built this image, available at <a href=https://hub.docker.com/r/k0rventen/code/tags><em>k0rventen/code</em></a>, but if you want to tweak it, you&rsquo;ll find the necessary files below:</p><p>We&rsquo;re using an Ubuntu base, plus:</p><ul><li>we install basic dev utils and requirements for running dockerd</li><li>we copy the dockerd stuff from their own image</li><li>we install code-server</li><li>we change the default shell to fish and copy over our base config files</li><li>we start a <em>bootstrap.fish</em> script</li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-Dockerfile data-lang=Dockerfile><span style=display:flex><span><span style=color:#75715e># base image using ubuntu</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> ubuntu:23.04</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># install utils (fish shell, ssh)</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> apt update <span style=color:#f92672>&amp;&amp;</span> apt install -y --no-install-recommends curl ca-certificates git iptables fuse-overlayfs dnsutils less fish openssh-client <span style=color:#f92672>&amp;&amp;</span> apt clean<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e>#install code-server</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.14.0 <span style=color:#f92672>&amp;&amp;</span> rm -rvf /root/.cache<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># copy dockerd binaries from the docker image</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> --from<span style=color:#f92672>=</span>docker:20-dind /usr/local/bin/ /usr/local/bin/<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># shell config</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> chsh -s /usr/bin/fish<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> config/ /tmp/code<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># run our launch script</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>ENTRYPOINT</span> [<span style=color:#e6db74>&#34;fish&#34;</span>, <span style=color:#e6db74>&#34;/tmp/code/bootstrap.fish&#34;</span>]<span style=color:#960050;background-color:#1e0010>
+</span></span></span></code></pre></div><p>The <code>bootstrap.fish</code> has the following duties:</p><ul><li>make sure mandatory directories are here</li><li>install Linuxbrew if not present (which will run only once, during the first startup of the env)</li><li>start the dockerd daemon in the background</li><li>then start code-server</li></ul><p>Here is its content:
+<em>bootstrap.fish</em></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>cd $home
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>mkdir -p projects .config/fish
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> test ! -e .config/fish/config.fish
+</span></span><span style=display:flex><span>  echo <span style=color:#e6db74>&#34;copying fish config&#34;</span>
+</span></span><span style=display:flex><span>  cp -v /tmp/code/config.fish  .config/fish/config.fish
+</span></span><span style=display:flex><span>end
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> test ! -e /home/linuxbrew/.linuxbrew/bin
+</span></span><span style=display:flex><span>  echo <span style=color:#e6db74>&#34;installing linuxbrew&#34;</span>
+</span></span><span style=display:flex><span>  bash -c <span style=color:#e6db74>&#39;NONINTERACTIVE=1 /bin/bash -c &#34;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&#34;&#39;</span> &amp;
+</span></span><span style=display:flex><span>end
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>echo <span style=color:#e6db74>&#34;starting dockerd..&#34;</span>
+</span></span><span style=display:flex><span>sh /usr/local/bin/dockerd-entrypoint.sh &amp;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>echo <span style=color:#e6db74>&#34;starting code server&#34;</span>
+</span></span><span style=display:flex><span>exec code-server --bind-addr 0.0.0.0:9069 --auth none --disable-telemetry --disable-update-check projects
+</span></span></code></pre></div><p>The <em>config.fish</em> is a very minimal config to get us started:</p><p><em>config.fish</em></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># quiet fish</span>
+</span></span><span style=display:flex><span>set fish_greeting
+</span></span><span style=display:flex><span>set -gx HOMEBREW_NO_ENV_HINTS <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>set -gx HOMEBREW_NO_INSTALL_CLEANUP <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># brew fish</span>
+</span></span><span style=display:flex><span>fish_add_path /home/linuxbrew/.linuxbrew/bin
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># simple fish </span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>function</span> fish_prompt
+</span></span><span style=display:flex><span>  printf <span style=color:#e6db74>&#39;\n%s[%s]%s &gt; &#39;</span> <span style=color:#f92672>(</span>set_color cyan<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>prompt_pwd<span style=color:#f92672>)</span> <span style=color:#f92672>(</span>set_color normal<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>end
+</span></span></code></pre></div><h2 id=the-coder-platform>The Coder platform</h2><p>Coder can be installed on a lot of platform, including docker, k8s and friends. Here we&rsquo;ll concentrate on Kube. Requirements are a cluster with a storage class and an Ingress controller. You&rsquo;ll need <code>helm</code> as well.</p><p>From this point forward, I&rsquo;ll assume that you have a cluster which can be accessed using the domain names <code>coder.org</code> and <code>*.coder.org</code> (You can add them in your local DNS server, or as entries in your /etc/hosts file <em>wildcards aren&rsquo;t supported, but for testing purposes you could write the required subdomains as needed</em>).</p><p>Depending on the setup you&rsquo;ll need to adjust some variables in the files below.</p><p>The configuration of the platform is done through the <code>values.yaml</code> passed to helm. The important bit is the <code>CODER_ACCESS_URL</code> and <code>CODER_WILDCARD_ACCESS_URL</code> env vars and ingress config. They will define how clients can access the platform and their envs.</p><p><em>values.yaml</em></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#f92672>coder</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>env</span>:
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>CODER_PG_CONNECTION_URL</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>valueFrom</span>:
+</span></span><span style=display:flex><span>        <span style=color:#f92672>secretKeyRef</span>:
+</span></span><span style=display:flex><span>          <span style=color:#f92672>name</span>: <span style=color:#ae81ff>coder-db-url</span>
+</span></span><span style=display:flex><span>          <span style=color:#f92672>key</span>: <span style=color:#ae81ff>url</span>
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>CODER_ACCESS_URL</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;https://coder.org&#34;</span>
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>CODER_TELEMETRY</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;false&#34;</span>
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>CODER_WILDCARD_ACCESS_URL</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>value</span>: <span style=color:#e6db74>&#34;*.coder.org&#34;</span>
+</span></span><span style=display:flex><span>    - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>CODER_AGENT_URL</span>
+</span></span><span style=display:flex><span>      <span style=color:#f92672>value</span>:  <span style=color:#e6db74>&#34;http://coder&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>service</span>:
+</span></span><span style=display:flex><span>    <span style=color:#f92672>type</span>: <span style=color:#ae81ff>ClusterIP</span>
+</span></span><span style=display:flex><span>  <span style=color:#f92672>ingress</span>:
+</span></span><span style=display:flex><span>    <span style=color:#f92672>enable</span>: <span style=color:#66d9ef>true</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>host</span>: <span style=color:#e6db74>&#34;coder.org&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>wildcardHost</span>: <span style=color:#e6db74>&#34;*.coder.org&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>annotations</span>:
+</span></span><span style=display:flex><span>      <span style=color:#f92672>nginx.ingress.kubernetes.io/enable-cors</span>: <span style=color:#e6db74>&#34;true&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>tls</span>:
+</span></span><span style=display:flex><span>      <span style=color:#f92672>enable</span>: <span style=color:#66d9ef>true</span>
+</span></span></code></pre></div><p>Now we can deploy everything:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># create a namespace for our platform</span>
+</span></span><span style=display:flex><span>kubectl create ns coder
+</span></span><span style=display:flex><span>kubectl config set-context --current --namespace coder
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># postgres will be used by coder</span>
+</span></span><span style=display:flex><span>helm repo add bitnami https://charts.bitnami.com/bitnami
+</span></span><span style=display:flex><span>helm install coder-db bitnami/postgresql --namespace coder --set auth.username<span style=color:#f92672>=</span>coder --set auth.password<span style=color:#f92672>=</span>coder --set auth.database<span style=color:#f92672>=</span>coder --set persistence.size<span style=color:#f92672>=</span>10Gi
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># create a secret for coder holding the db creds</span>
+</span></span><span style=display:flex><span>kubectl create secret generic coder-db-url --from-literal<span style=color:#f92672>=</span>url<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;postgres://coder:coder@coder-db-postgresql.coder.svc.cluster.local:5432/coder?sslmode=disable&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># deploy coder</span>
+</span></span><span style=display:flex><span>helm repo add coder-v2 https://helm.coder.com/v2
+</span></span><span style=display:flex><span>helm upgrade --install coder coder-v2/coder --namespace coder --values values.yaml
+</span></span></code></pre></div><p>You should be able to access the management interface at <code>https://coder.org</code>. Create your admin user there and come back.</p><h2 id=the-custom-kubernetes-provider>The custom Kubernetes provider</h2><p>We now need to register a provider for our environments. The default <code>Kubernetes</code> provider available is a good start, but we&rsquo;ll tweak it a bit to our needs. It&rsquo;s a single Terraform file defining the ressources to be created. It&rsquo;s quite long but the gist is that each environment will be composed of:</p><ul><li>1 Pod that will execute our dev env, with configurable ressources allocations (CPU & RAM)</li><li>3 PersistantVolumeClaims<ul><li>one for our home folder, mounted on <code>/root</code></li><li>one for the dockerd daemon files, on <code>/var/lib/docker</code></li><li>one for linuxbrew at <code>/home/linuxbrew</code></li></ul></li></ul><p>The file is quite long:
+<details><summary><strong>main.tf</strong></summary><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-h data-lang=h><span style=display:flex><span>terraform {
+</span></span><span style=display:flex><span>  required_providers {
+</span></span><span style=display:flex><span>    coder <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      source  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder/coder&#34;</span>
+</span></span><span style=display:flex><span>      version <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;~&gt; 0.7.0&#34;</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    kubernetes <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      source  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;hashicorp/kubernetes&#34;</span>
+</span></span><span style=display:flex><span>      version <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;~&gt; 2.18&#34;</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>provider <span style=color:#e6db74>&#34;coder&#34;</span> {
+</span></span><span style=display:flex><span>  feature_use_managed_variables <span style=color:#f92672>=</span> true
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>variable <span style=color:#e6db74>&#34;namespace&#34;</span> {
+</span></span><span style=display:flex><span>  type        <span style=color:#f92672>=</span> string
+</span></span><span style=display:flex><span>  description <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;The Kubernetes namespace to create workspaces in (must exist prior to creating workspaces)&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>default</span>      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder&#34;</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>data <span style=color:#e6db74>&#34;coder_parameter&#34;</span> <span style=color:#e6db74>&#34;cpu&#34;</span> {
+</span></span><span style=display:flex><span>  name         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;cpu&#34;</span>
+</span></span><span style=display:flex><span>  display_name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;CPU&#34;</span>
+</span></span><span style=display:flex><span>  description  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;The number of CPU cores&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>default</span>      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;2&#34;</span>
+</span></span><span style=display:flex><span>  icon         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/icon/memory.svg&#34;</span>
+</span></span><span style=display:flex><span>  mutable      <span style=color:#f92672>=</span> true
+</span></span><span style=display:flex><span>  option {
+</span></span><span style=display:flex><span>    name  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Light machine (2 Cores)&#34;</span>
+</span></span><span style=display:flex><span>    value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;2&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  option {
+</span></span><span style=display:flex><span>    name  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Heavy Machine (8 Cores)&#34;</span>
+</span></span><span style=display:flex><span>    value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;8&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>data <span style=color:#e6db74>&#34;coder_parameter&#34;</span> <span style=color:#e6db74>&#34;memory&#34;</span> {
+</span></span><span style=display:flex><span>  name         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;memory&#34;</span>
+</span></span><span style=display:flex><span>  display_name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Memory&#34;</span>
+</span></span><span style=display:flex><span>  description  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;The amount of memory in GB&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>default</span>      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;2&#34;</span>
+</span></span><span style=display:flex><span>  icon         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/icon/memory.svg&#34;</span>
+</span></span><span style=display:flex><span>  mutable      <span style=color:#f92672>=</span> true
+</span></span><span style=display:flex><span>  option {
+</span></span><span style=display:flex><span>    name  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;2 GB&#34;</span>
+</span></span><span style=display:flex><span>    value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;2&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  option {
+</span></span><span style=display:flex><span>    name  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;8 GB&#34;</span>
+</span></span><span style=display:flex><span>    value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;8&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>data <span style=color:#e6db74>&#34;coder_parameter&#34;</span> <span style=color:#e6db74>&#34;image&#34;</span> {
+</span></span><span style=display:flex><span>  name         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Image&#34;</span>
+</span></span><span style=display:flex><span>  display_name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Container Image&#34;</span>
+</span></span><span style=display:flex><span>  description  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;The base container image to use&#34;</span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>default</span>      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;k0rventen/code:0.1&#34;</span>
+</span></span><span style=display:flex><span>  icon         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/icon/memory.svg&#34;</span>
+</span></span><span style=display:flex><span>  mutable      <span style=color:#f92672>=</span> true
+</span></span><span style=display:flex><span>  type         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;string&#34;</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>provider <span style=color:#e6db74>&#34;kubernetes&#34;</span> {
+</span></span><span style=display:flex><span>  <span style=color:#75715e># Authenticate via ~/.kube/config or a Coder-specific ServiceAccount, depending on admin preferences
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>  config_path <span style=color:#f92672>=</span> null
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>data <span style=color:#e6db74>&#34;coder_workspace&#34;</span> <span style=color:#e6db74>&#34;me&#34;</span> {}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>resource <span style=color:#e6db74>&#34;coder_agent&#34;</span> <span style=color:#e6db74>&#34;main&#34;</span> {
+</span></span><span style=display:flex><span>  os                     <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;linux&#34;</span>
+</span></span><span style=display:flex><span>  arch                   <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;amd64&#34;</span>
+</span></span><span style=display:flex><span>  startup_script_timeout <span style=color:#f92672>=</span> <span style=color:#ae81ff>180</span>
+</span></span><span style=display:flex><span>  startup_script         <span style=color:#f92672>=</span> <span style=color:#f92672>&lt;&lt;-</span>EOT
+</span></span><span style=display:flex><span>    set <span style=color:#f92672>-</span>e
+</span></span><span style=display:flex><span>    fish <span style=color:#f92672>/</span>tmp<span style=color:#f92672>/</span>code<span style=color:#f92672>/</span>bootstrap.fish
+</span></span><span style=display:flex><span>  EOT
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># code-server
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>resource <span style=color:#e6db74>&#34;coder_app&#34;</span> <span style=color:#e6db74>&#34;code-server&#34;</span> {
+</span></span><span style=display:flex><span>  agent_id     <span style=color:#f92672>=</span> coder_agent.main.id
+</span></span><span style=display:flex><span>  slug         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;code-server&#34;</span>
+</span></span><span style=display:flex><span>  display_name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;code-server&#34;</span>
+</span></span><span style=display:flex><span>  icon         <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/icon/code.svg&#34;</span>
+</span></span><span style=display:flex><span>  url          <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;http://localhost:9069?folder=/root/projects&#34;</span>
+</span></span><span style=display:flex><span>  subdomain    <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>  share        <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;owner&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  healthcheck {
+</span></span><span style=display:flex><span>    url       <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;http://localhost:9069/healthz&#34;</span>
+</span></span><span style=display:flex><span>    interval  <span style=color:#f92672>=</span> <span style=color:#ae81ff>3</span>
+</span></span><span style=display:flex><span>    threshold <span style=color:#f92672>=</span> <span style=color:#ae81ff>10</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>resource <span style=color:#e6db74>&#34;kubernetes_persistent_volume_claim&#34;</span> <span style=color:#e6db74>&#34;home&#34;</span> {
+</span></span><span style=display:flex><span>  metadata {
+</span></span><span style=display:flex><span>    name      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-${lower(data.coder_workspace.me.owner)}-${lower(data.coder_workspace.me.name)}-home&#34;</span>
+</span></span><span style=display:flex><span>    namespace <span style=color:#f92672>=</span> var.namespace
+</span></span><span style=display:flex><span>    labels <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/name&#34;</span>     <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-pvc&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/instance&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-pvc-${lower(data.coder_workspace.me.owner)}-${lower(data.coder_workspace.me.name)}&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/part-of&#34;</span>  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#75715e>// Coder specific labels.
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>      <span style=color:#e6db74>&#34;com.coder.resource&#34;</span>       <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;true&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.workspace.id&#34;</span>   <span style=color:#f92672>=</span> data.coder_workspace.me.id
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.workspace.name&#34;</span> <span style=color:#f92672>=</span> data.coder_workspace.me.name
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.id&#34;</span>        <span style=color:#f92672>=</span> data.coder_workspace.me.owner_id
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.username&#34;</span>  <span style=color:#f92672>=</span> data.coder_workspace.me.owner
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    annotations <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.email&#34;</span> <span style=color:#f92672>=</span> data.coder_workspace.me.owner_email
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  wait_until_bound <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>  spec {
+</span></span><span style=display:flex><span>    access_modes <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#34;ReadWriteOnce&#34;</span>]
+</span></span><span style=display:flex><span>    resources {
+</span></span><span style=display:flex><span>      requests <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>        storage <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;4Gi&#34;</span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>resource <span style=color:#e6db74>&#34;kubernetes_persistent_volume_claim&#34;</span> <span style=color:#e6db74>&#34;docker&#34;</span> {
+</span></span><span style=display:flex><span>  metadata {
+</span></span><span style=display:flex><span>    name      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-${lower(data.coder_workspace.me.owner)}-${lower(data.coder_workspace.me.name)}-docker&#34;</span>
+</span></span><span style=display:flex><span>    namespace <span style=color:#f92672>=</span> var.namespace
+</span></span><span style=display:flex><span>    labels <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/name&#34;</span>     <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-pvc&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/instance&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-pvc-${lower(data.coder_workspace.me.owner)}-${lower(data.coder_workspace.me.name)}&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/part-of&#34;</span>  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#75715e>// Coder specific labels.
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>      <span style=color:#e6db74>&#34;com.coder.resource&#34;</span>       <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;true&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.workspace.id&#34;</span>   <span style=color:#f92672>=</span> data.coder_workspace.me.id
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.workspace.name&#34;</span> <span style=color:#f92672>=</span> data.coder_workspace.me.name
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.id&#34;</span>        <span style=color:#f92672>=</span> data.coder_workspace.me.owner_id
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.username&#34;</span>  <span style=color:#f92672>=</span> data.coder_workspace.me.owner
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    annotations <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.email&#34;</span> <span style=color:#f92672>=</span> data.coder_workspace.me.owner_email
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  wait_until_bound <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>  spec {
+</span></span><span style=display:flex><span>    access_modes <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#34;ReadWriteOnce&#34;</span>]
+</span></span><span style=display:flex><span>    resources {
+</span></span><span style=display:flex><span>      requests <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>        storage <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;10Gi&#34;</span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>resource <span style=color:#e6db74>&#34;kubernetes_persistent_volume_claim&#34;</span> <span style=color:#e6db74>&#34;linuxbrew&#34;</span> {
+</span></span><span style=display:flex><span>  metadata {
+</span></span><span style=display:flex><span>    name      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-${lower(data.coder_workspace.me.owner)}-${lower(data.coder_workspace.me.name)}-linuxbrew&#34;</span>
+</span></span><span style=display:flex><span>    namespace <span style=color:#f92672>=</span> var.namespace
+</span></span><span style=display:flex><span>    labels <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/name&#34;</span>     <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-pvc&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/instance&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-pvc-${lower(data.coder_workspace.me.owner)}-${lower(data.coder_workspace.me.name)}&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/part-of&#34;</span>  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#75715e>// Coder specific labels.
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>      <span style=color:#e6db74>&#34;com.coder.resource&#34;</span>       <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;true&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.workspace.id&#34;</span>   <span style=color:#f92672>=</span> data.coder_workspace.me.id
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.workspace.name&#34;</span> <span style=color:#f92672>=</span> data.coder_workspace.me.name
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.id&#34;</span>        <span style=color:#f92672>=</span> data.coder_workspace.me.owner_id
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.username&#34;</span>  <span style=color:#f92672>=</span> data.coder_workspace.me.owner
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    annotations <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.email&#34;</span> <span style=color:#f92672>=</span> data.coder_workspace.me.owner_email
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  wait_until_bound <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>  spec {
+</span></span><span style=display:flex><span>    access_modes <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#34;ReadWriteOnce&#34;</span>]
+</span></span><span style=display:flex><span>    resources {
+</span></span><span style=display:flex><span>      requests <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>        storage <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;10Gi&#34;</span>
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>resource <span style=color:#e6db74>&#34;kubernetes_pod&#34;</span> <span style=color:#e6db74>&#34;main&#34;</span> {
+</span></span><span style=display:flex><span>  count <span style=color:#f92672>=</span> data.coder_workspace.me.start_count
+</span></span><span style=display:flex><span>  metadata {
+</span></span><span style=display:flex><span>    name      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-${lower(data.coder_workspace.me.owner)}-${lower(data.coder_workspace.me.name)}&#34;</span>
+</span></span><span style=display:flex><span>    namespace <span style=color:#f92672>=</span> var.namespace
+</span></span><span style=display:flex><span>    labels <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/name&#34;</span>     <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-workspace&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/instance&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder-workspace-${lower(data.coder_workspace.me.owner)}-${lower(data.coder_workspace.me.name)}&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;app.kubernetes.io/part-of&#34;</span>  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;coder&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#75715e>// Coder specific labels.
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>      <span style=color:#e6db74>&#34;com.coder.resource&#34;</span>       <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;true&#34;</span>
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.workspace.id&#34;</span>   <span style=color:#f92672>=</span> data.coder_workspace.me.id
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.workspace.name&#34;</span> <span style=color:#f92672>=</span> data.coder_workspace.me.name
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.id&#34;</span>        <span style=color:#f92672>=</span> data.coder_workspace.me.owner_id
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.username&#34;</span>  <span style=color:#f92672>=</span> data.coder_workspace.me.owner
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    annotations <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>      <span style=color:#e6db74>&#34;com.coder.user.email&#34;</span> <span style=color:#f92672>=</span> data.coder_workspace.me.owner_email
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>  spec {
+</span></span><span style=display:flex><span>    container {
+</span></span><span style=display:flex><span>      name              <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;code-container&#34;</span>
+</span></span><span style=display:flex><span>      image             <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;${data.coder_parameter.image.value}&#34;</span>
+</span></span><span style=display:flex><span>      image_pull_policy <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Always&#34;</span>
+</span></span><span style=display:flex><span>      command           <span style=color:#f92672>=</span> [<span style=color:#e6db74>&#34;sh&#34;</span>, <span style=color:#e6db74>&#34;-c&#34;</span>, <span style=color:#a6e22e>replace</span>(coder_agent.main.init_script,<span style=color:#e6db74>&#34;https://coder.org&#34;</span>,<span style=color:#e6db74>&#34;http://coder&#34;</span>)]
+</span></span><span style=display:flex><span>      env {
+</span></span><span style=display:flex><span>        name  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;CODER_AGENT_TOKEN&#34;</span>
+</span></span><span style=display:flex><span>        value <span style=color:#f92672>=</span> coder_agent.main.token
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>      security_context {
+</span></span><span style=display:flex><span>      privileged <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;true&#34;</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>      resources {
+</span></span><span style=display:flex><span>        requests <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>          <span style=color:#e6db74>&#34;cpu&#34;</span>    <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;250m&#34;</span>
+</span></span><span style=display:flex><span>          <span style=color:#e6db74>&#34;memory&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;512Mi&#34;</span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        limits <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>          <span style=color:#e6db74>&#34;cpu&#34;</span>    <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;${data.coder_parameter.cpu.value}&#34;</span>
+</span></span><span style=display:flex><span>          <span style=color:#e6db74>&#34;memory&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;${data.coder_parameter.memory.value}Gi&#34;</span>
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>      volume_mount {
+</span></span><span style=display:flex><span>        mount_path <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/root&#34;</span>
+</span></span><span style=display:flex><span>        name       <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;home&#34;</span>
+</span></span><span style=display:flex><span>        read_only  <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>      volume_mount {
+</span></span><span style=display:flex><span>        mount_path <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/var/lib/docker&#34;</span>
+</span></span><span style=display:flex><span>        name       <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;docker&#34;</span>
+</span></span><span style=display:flex><span>        read_only  <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>      volume_mount {
+</span></span><span style=display:flex><span>        mount_path <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;/home/linuxbrew&#34;</span>
+</span></span><span style=display:flex><span>        name       <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;linuxbrew&#34;</span>
+</span></span><span style=display:flex><span>        read_only  <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    volume {
+</span></span><span style=display:flex><span>      name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;home&#34;</span>
+</span></span><span style=display:flex><span>      persistent_volume_claim {
+</span></span><span style=display:flex><span>        claim_name <span style=color:#f92672>=</span> kubernetes_persistent_volume_claim.home.metadata<span style=color:#ae81ff>.0</span>.name
+</span></span><span style=display:flex><span>        read_only  <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    volume {
+</span></span><span style=display:flex><span>      name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;docker&#34;</span>
+</span></span><span style=display:flex><span>      persistent_volume_claim {
+</span></span><span style=display:flex><span>        claim_name <span style=color:#f92672>=</span> kubernetes_persistent_volume_claim.docker.metadata<span style=color:#ae81ff>.0</span>.name
+</span></span><span style=display:flex><span>        read_only  <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    volume {
+</span></span><span style=display:flex><span>      name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;linuxbrew&#34;</span>
+</span></span><span style=display:flex><span>      persistent_volume_claim {
+</span></span><span style=display:flex><span>        claim_name <span style=color:#f92672>=</span> kubernetes_persistent_volume_claim.linuxbrew.metadata<span style=color:#ae81ff>.0</span>.name
+</span></span><span style=display:flex><span>        read_only  <span style=color:#f92672>=</span> false
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div></details></p><p><em>Note: One quirk of this setup is that due to our environment using self signed certificate, we have to replace the external URL (the one used to access the envs) by the internal one (the coder service inside the ns) for our envs to start properly. In a more realistic scenario, trusted CA certs would be used instead.</em></p><p>To deploy this provider to our Coder instance, we&rsquo;ll need the <code>coder</code> cli, available <a href=https://github.com/coder/coder/releases>here</a>.
+Depending on the exact setup (mainly due to self signed certificates), the login endpoint will vary, but the easiest is to port-forward the internal <code>coder</code> service and login through this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># in a tab</span>
+</span></span><span style=display:flex><span>kubectl port-forward svc/coder 8080:80
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># in another tab, then follow the login procedure</span>
+</span></span><span style=display:flex><span>coder login http://127.0.0.1:8080
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># once logged in, in the same dir as `main.tf`, reply yes to questions</span>
+</span></span><span style=display:flex><span>coder template create kube
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># You should preview the resources that will be created for each env:</span>
+</span></span><span style=display:flex><span>┌──────────────────────────────────────────────────┐
+</span></span><span style=display:flex><span>│ Template Preview                                 │
+</span></span><span style=display:flex><span>├──────────────────────────────────────────────────┤
+</span></span><span style=display:flex><span>│ RESOURCE                                         │
+</span></span><span style=display:flex><span>├──────────────────────────────────────────────────┤
+</span></span><span style=display:flex><span>│ kubernetes_persistent_volume_claim.docker        │
+</span></span><span style=display:flex><span>├──────────────────────────────────────────────────┤
+</span></span><span style=display:flex><span>│ kubernetes_persistent_volume_claim.home          │
+</span></span><span style=display:flex><span>├──────────────────────────────────────────────────┤
+</span></span><span style=display:flex><span>│ kubernetes_persistent_volume_claim.linuxbrew     │
+</span></span><span style=display:flex><span>├──────────────────────────────────────────────────┤
+</span></span><span style=display:flex><span>│ kubernetes_pod.main                              │
+</span></span><span style=display:flex><span>│ └─ main <span style=color:#f92672>(</span>linux, amd64<span style=color:#f92672>)</span>                           │
+</span></span><span style=display:flex><span>└──────────────────────────────────────────────────┘
+</span></span></code></pre></div><h2 id=accessing-our-environment>Accessing our environment</h2><p>Now everything required to work directly into our cluster is deployed.
+We can now create a Workspace based on the provider we defined earlier:
+<img src=/coder-remote-env/workspace.png alt=workspace></p><p>Wait for the pod to be created and the <code>code-server</code> button to become available.
+Now we can work using a web browser from our thin & light laptop (or even a Raspberry Pi) with the power of a cluster:</p><video class=video-shortcode preload=auto controls autoplay>
+<source src=/coder-remote-env/demo.mp4 type=video/mp4>There should have been a video here but your browser does not seem to support it.</video><h2 id=disclaimer>Disclaimer</h2><p>This setup is loosely based on what is deployed and used daily at $job.
+The main upsides are that :</p><ul><li>onboarding/updating/offboarding the environments are dead-easy,</li><li>laptops are running way cooler, batteries last longer and builds are way faster,</li><li>and testing has very little friction due to the fact that we are right inside the cluster.</li></ul><p>But there is some downsides:</p><ul><li>notably around security, our envs are running as privileged in the cluster (for dockerd), which might not be fine depending on the level of trust you want.
+One possible fix would be to switch to a rootless docker/podman, but as of time of writing, there are too many quirks when deploying such solutions.</li><li>having the dev envs centralised means possibly a SPOF that could ruin everyone&rsquo;s day if something goes wrong with the platform or the cluster.</li><li>it might require a certain level of maturity around containers, mainly around how networking is affected by a remote setup.</li></ul></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>read other posts</span><hr></div><div class=pagination__buttons><span class="button next"><a href=/posts/translating-kubernetes/><span class=button__text>Contributing to the k8s documentation</span>
+<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a><div class=copyright><span>© 2023 Powered by
+<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
+<span>Theme created by
+<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script>
+<script src=/assets/prism.js></script></div></body></html>
