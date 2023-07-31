@@ -1,7 +1,6 @@
 ---
 title: "Remote development in Kubernetes With Coder"
 date: 2023-06-22
-draft: true
 description: "It's time to live in Kubernetes."
 tags: ["remote","k8s","coder"]
 ---
