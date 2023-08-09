@@ -1,0 +1,45 @@
+<!doctype html><html lang=en><head><title>Reset a lost account password using docker ::</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="Story time A funny thing happened today.
+A remote Raspberry Pi deployed a few years back for $client was having issues connecting with another system. When setting up the Pi, I thought of sharing my ssh key from my laptop so I could SSH into it passwordless-style.
+But it didn&amp;rsquo;t occured to younger (and stupider apparently) me to save the password for that account somewhere. And on that system (and generally on Debian I believe), standard accounts are in the sudo group, but not with passwordless access, meaning you can run sudo but you have to enter your session&amp;rsquo;s password."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/reset-password-with-docker/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Reset a lost account password using docker"><meta name=twitter:description content="thx god I gave my account docker socket access"><meta property="og:title" content="Reset a lost account password using docker"><meta property="og:description" content="thx god I gave my account docker socket access"><meta property="og:type" content="article"><meta property="og:url" content="/posts/reset-password-with-docker/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2023-08-09T00:00:00+00:00"><meta property="article:modified_time" content="2023-08-09T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a>
+<span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Reset a lost account password using docker</h1><div class=post-meta><span class=post-date>2023-08-09</span>
+<span class=post-read-time>— 3 min read</span></div><span class=post-tags><a href=/tags/docker/>#docker</a>&nbsp;
+<a href=/tags/linux/>#linux</a>&nbsp;
+<a href=/tags/security/>#security</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><ul><li><a href=#story-time>Story time</a></li></ul></li></ul></nav></aside><h2 id=story-time>Story time</h2><p>A funny thing happened today.</p><p>A remote Raspberry Pi deployed a few years back for $client was having issues connecting with another system.
+When setting up the Pi, I thought of sharing my ssh key from my laptop so I could SSH into it passwordless-style.</p><p>But it didn&rsquo;t occured to younger (and stupider apparently) me to save the password for that account somewhere.
+And on that system (and generally on Debian I believe), standard accounts are in the sudo group, but not with passwordless access, meaning you can run <em>sudo</em> but you have to enter your session&rsquo;s password.</p><p>So here I am, without my own password, having to perform <code>sudo</code> enabled commands:</p><pre tabindex=0><code>coco@insight-probe-pop:/$ sudo timedatectl show-timesync
+[sudo] password for coco: 
+Sorry, try again.
+[sudo] password for coco: 
+Sorry, try again.
+[sudo] password for coco: 
+sudo: 3 incorrect password attempts
+coco@insight-probe-pop:/$ fjeziofgjizrejfgzr
+</code></pre><p>No f*ckin idea of what the password is. Younger me was <em>smart</em> and surely used a randomly generated password, &ldquo;for the sake of security&rdquo;, obviously.</p><p>I was preparing my email to $client, creating some subtle excuses, when I realized that the Pi was running docker containers.
+And my account was able to run <code>docker</code> commands, because back when setting the system up, I also added myself to the docker group using <code>usermod -aG docker $USER</code> (on that, it&rsquo;s not recommended, see below on what should be done now using rootless setups).</p><p>And through docker you can run privileged containers, <em>right</em> ? Running as root, <em>right</em> ? And mount <em>host files</em> into a container ?</p><p><strong>SO</strong> if I could launch a privileged container, <em>and</em> have a user with uid=0, <em>and</em> mount the <code>/etc/passwd</code> file in it, could it be possible to change my password using <code>passwd</code> ?</p><p>Only one way to find out:</p><pre tabindex=0><code># start a container mapping the passwd file
+docker run -it --privileged -v /etc/passwd:/etc/passwd debian
+root@555b0af3924a:/#
+
+# okay the file is here
+root@555b0af3924a:/# ls -alh /etc/passwd
+-rw-r--r-- 1 root root 1.3K Jun 12  2020 /etc/passwd
+
+# use the container&#39;s passwd binary to change the host&#39;s passwd file
+root@555b0af3924a:/# passwd coco
+New password: 
+Retype new password: 
+passwd: password updated successfully
+root@555b0af3924a:/#
+exit
+</code></pre><p>And now if I try again from my account on that machine:</p><pre tabindex=0><code>coco@insight-probe-pop:/$ sudo echo boom
+[sudo] password for coco: 
+boom
+</code></pre><p><strong>GOD DAMN IT WORKS !!</strong></p><p>I still haven&rsquo;t figured out if that was a 200IQ move, or just fixing a previous -200IQ move.</p><p>But I was then able to fix the problem and sent a happy email.
+Also current me learned something and saved that password somewhere.
+Today&rsquo;s a good day.</p><p><em>Note: A lot changed since setting up this system regarding docker and how it handles root access. It even has a <em>rootless</em> mode (doc <a href=https://docs.docker.com/engine/security/rootless/>here</a>), and the same goes for podman (<a href=https://rootlesscontaine.rs/getting-started/podman/>doc</a>). Also giving non-admin users access to the docker daemon isn&rsquo;t a bright idea. Shame on younger me. But also thanks younger me, without that mistake I would still be figuring out how to regain access to that system.</em></p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>read other posts</span><hr></div><div class=pagination__buttons><span class="button next"><a href=/posts/remote-env-with-coder/><span class=button__text>Remote development in Kubernetes With Coder</span>
+<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a><div class=copyright><span>© 2023 Powered by
+<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
+<span>Theme created by
+<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script>
+<script src=/assets/prism.js></script></div></body></html>
