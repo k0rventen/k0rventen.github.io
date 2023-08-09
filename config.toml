@@ -19,24 +19,23 @@ paginate = 10
 
 [languages]
   [languages.en]
-    title = ""
-    subtitle = ""
-    keywords = ""
-    copyright = ""
-    menuMore = "Show more"
-    writtenBy = ""
-    readMore = "read more"
-    readOtherPosts = "read other posts"
-    lastModDisplay = "updated"
-    newerPosts = "newer posts"
-    olderPosts = "older posts"
-    minuteReadingTime = "min read"
-    dateFormatSingle = "2006-01-02"
-    dateFormatList = "2006-01-02"
-
     [languages.en.params.logo]
       logoText = "k0rventen:~"
       logoHomeLink = "/"
+      title = ""
+      subtitle = ""
+      keywords = ""
+      copyright = ""
+      menuMore = "Show more"
+      writtenBy = ""
+      readMore = "read more"
+      readOtherPosts = "read other posts"
+      lastModDisplay = "updated"
+      newerPosts = "newer posts"
+      olderPosts = "older posts"
+      minuteReadingTime = "min read"
+      dateFormatSingle = "2006-01-02"
+      dateFormatList = "2006-01-02"
       
     [languages.en.menu]
       [[languages.en.menu.main]]
