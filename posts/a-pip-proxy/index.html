@@ -1,0 +1,160 @@
+<!doctype html><html lang=en><head><title>A PYPI cache proxy to improve our CI workflows ::</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="what &amp;amp; why a bit of context At $dayjob, our backend stack is 99% python based, and deployed through containers on k8s clusters. That means that a lot of time spent in our CI is downloading and installing librairies and modules from Pypi, the Python Package Index.
+For the sake of data sovereignty and integrity, our CI workers are deployed on-prem, using Gitlab Runners. But due to the variety of projects, we are depending on hundreds of various libraries, ranging from fastapi/flask and their related libraries, to more esoteric ones like pysnmp, yang, scrapli, netmiko/paramiko."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/a-pip-proxy/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="A PYPI cache proxy to improve our CI workflows"><meta name=twitter:description content="it's like VTEC for `pip install` !"><meta property="og:title" content="A PYPI cache proxy to improve our CI workflows"><meta property="og:description" content="it's like VTEC for `pip install` !"><meta property="og:type" content="article"><meta property="og:url" content="/posts/a-pip-proxy/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2023-09-09T00:00:00+00:00"><meta property="article:modified_time" content="2023-09-09T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a>
+<span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>A PYPI cache proxy to improve our CI workflows</h1><div class=post-meta><span class=post-date>2023-09-09</span>
+<span class=post-read-time>— 7 min read</span></div><span class=post-tags><a href=/tags/python/>#python</a>&nbsp;
+<a href=/tags/pip/>#pip</a>&nbsp;
+<a href=/tags/ci/>#ci</a>&nbsp;
+<a href=/tags/nginx/>#nginx</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><ul><li><a href=#what--why>what & why</a><ul><li><a href=#a-bit-of-context>a bit of context</a></li><li><a href=#the-problem>the problem</a></li></ul></li><li><a href=#how>how</a><ul><li><a href=#the-proxycache-container>the proxy/cache container</a></li><li><a href=#telling-pip-to-use-our-proxy>telling pip to use our proxy</a></li><li><a href=#changes-to-the-ci>changes to the CI</a></li></ul></li></ul></li></ul></nav></aside><h2 id=what--why>what & why</h2><h3 id=a-bit-of-context>a bit of context</h3><p>At $dayjob, our backend stack is 99% python based, and deployed through containers on k8s clusters. That means that a lot of time spent in our CI is downloading and installing librairies and modules from <a href=https://pypi.org>Pypi</a>, the Python Package Index.</p><p>For the sake of data sovereignty and integrity, our CI workers are deployed on-prem, using Gitlab Runners. But due to the variety of projects, we are depending on hundreds of various libraries, ranging from fastapi/flask and their related libraries, to more esoteric ones like pysnmp, yang, scrapli, netmiko/paramiko..</p><h3 id=the-problem>the problem</h3><p>That leaves us with a significant amount of bandwith &lsquo;dedicated&rsquo; to just downloading libraires, some of them being quite heavy (ML/CV like torch or openCV are more than 100Mb in size). And besides our CI workers, our dev envs are also generating containers to use in our test envs. And keeping up with recent versions means downloading even more.</p><p>Our internet provider does not have a gigabit-class fiber for where we are (at least not at a reasonable price), so we are stuck on a ~100Mb/s downlink, shared across 2 companies, and dozens of employees.</p><p><em>Note: While we use the docker layer system in our CI to cache layers between runs, the cache is not shared across runners, and has to be purged regularly (weekly) to avoid disk issues, lingering layers..</em></p><p>This combination produce the following: In a CI stage building a container taking up 90s, the download of the libraries can some time tally up to 30, even 40 seconds. Overall, around 50% of our CI time is just downloading.</p><p>Furthermore, It seems quite wasteful to download again and again the same package from PYPI, putting unnecessary strain on our internet connection, their infrastructure, and everything in between.</p><p>So the goal is to avoid as much as possible the re-download of packages from internet, and improve the time needed to download heavy packages.</p><h2 id=how>how</h2><p>What we&rsquo;ve deployed is a docker image that acts as a PIP Proxy on the whole LAN, caching packages as they come and serving them locally when asked again.</p><p>This approach only required a single change in our CI workflow, which meant 0 downtime when deploying it. And everyone on the network can benefit from them if they add a new env var to their environment.</p><p>Before digging into the solution, there is some downsides to that solution:</p><ul><li>That adds a new potential point of failure for our CI. If for some reason the proxy isn&rsquo;t available, <code>pip install</code> will not redirect automatically to the default index URL, and all workflows will be broken</li><li>The cache size can increase rapidely, so it&rsquo;s important to keep an eye on that before running into disk issues (leading to problem n°1)</li><li>Developers using the proxy on a <em>mobile</em> laptop will encounter problems when the laptop isn&rsquo;t on the same network as the proxy</li></ul><p>Now onto the actual solution.</p><h3 id=the-proxycache-container>the proxy/cache container</h3><p>The docker container is a very simple nginx based image, with the following config from <a href=https://github.com/hauntsaninja/nginx_pypi_cache/blob/master/nginx.conf>this gist</a>:</p><details><summary><strong>nginx.conf</strong></summary><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh><span style=display:flex><span><span style=color:#75715e># Loosely based on the following:</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># (note these do not work correctly in 2023)</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># https://joelkleier.com/blog/2018-04-17-pypi-temporary-cache.html</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># https://gist.github.com/dctrwatson/5785638#file-nginx-conf</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># It&#39;s also very easy to end up not proxying requests; tests/mitmtest.sh should help verify that</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># pip installs actually avoid hitting upstream</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>error_log /var/log/nginx/error.log;
+</span></span><span style=display:flex><span>pid /var/run/nginx.pid;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>worker_processes auto;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>events <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>    worker_connections 2048;
+</span></span><span style=display:flex><span><span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>http <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>    include /etc/nginx/mime.types;
+</span></span><span style=display:flex><span>    default_type application/octet-stream;
+</span></span><span style=display:flex><span>    sendfile on;
+</span></span><span style=display:flex><span>    tcp_nodelay on;
+</span></span><span style=display:flex><span>    tcp_nopush off;
+</span></span><span style=display:flex><span>    reset_timedout_connection on;
+</span></span><span style=display:flex><span>    server_tokens off;
+</span></span><span style=display:flex><span>    gzip on;
+</span></span><span style=display:flex><span>    gzip_types application/vnd.pypi.simple.v1+json;
+</span></span><span style=display:flex><span>    gzip_proxied any;
+</span></span><span style=display:flex><span>    gzip_vary on;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    log_format pypi_cache <span style=color:#e6db74>&#39;$remote_addr - $host [$time_local] &#39;</span>
+</span></span><span style=display:flex><span>                          <span style=color:#e6db74>&#39;request_time=$request_time upstream_time=$upstream_response_time &#39;</span>
+</span></span><span style=display:flex><span>                          <span style=color:#e6db74>&#39;cache_status=$upstream_cache_status \t&#39;</span>
+</span></span><span style=display:flex><span>                          <span style=color:#e6db74>&#39;$status &#34;$request&#34; $body_bytes_sent&#39;</span>;
+</span></span><span style=display:flex><span>    access_log /dev/stdout pypi_cache buffer<span style=color:#f92672>=</span>64k flush<span style=color:#f92672>=</span>1s;
+</span></span><span style=display:flex><span>    <span style=color:#75715e># Log to file, can be useful for dev</span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e># access_log /var/log/nginx/cache.log pypi_cache buffer=64k flush=1s;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e># Cache 50G worth of packages for up to 6 months</span>
+</span></span><span style=display:flex><span>    proxy_cache_path /var/lib/nginx/pypi levels<span style=color:#f92672>=</span>1:2 keys_zone<span style=color:#f92672>=</span>pypi:16m inactive<span style=color:#f92672>=</span>6M max_size<span style=color:#f92672>=</span>50G;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e># Having the same upstream server listed twice allegedly forces nginx to retry</span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e># connections and not fail the request immediately.</span>
+</span></span><span style=display:flex><span>    upstream sg_pypi <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>        server pypi.org:443;
+</span></span><span style=display:flex><span>        server pypi.org:443;
+</span></span><span style=display:flex><span>        keepalive 16;
+</span></span><span style=display:flex><span>    <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>    upstream sg_pythonhosted <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>        server files.pythonhosted.org:443;
+</span></span><span style=display:flex><span>        server files.pythonhosted.org:443;
+</span></span><span style=display:flex><span>        keepalive 16;
+</span></span><span style=display:flex><span>    <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    server <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>        listen <span style=color:#ae81ff>80</span> default_server;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        proxy_cache pypi;
+</span></span><span style=display:flex><span>        proxy_cache_key $uri/$http_accept_encoding;
+</span></span><span style=display:flex><span>        proxy_cache_lock on;
+</span></span><span style=display:flex><span>        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        proxy_http_version 1.1;
+</span></span><span style=display:flex><span>        proxy_ssl_server_name on;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#75715e># sub_filter can&#39;t apply to gzipped content, so be careful about that</span>
+</span></span><span style=display:flex><span>        add_header X-Pypi-Cache $upstream_cache_status;
+</span></span><span style=display:flex><span>        sub_filter <span style=color:#e6db74>&#39;https://pypi.org&#39;</span> $scheme://$host;
+</span></span><span style=display:flex><span>        sub_filter <span style=color:#e6db74>&#39;https://files.pythonhosted.org/packages&#39;</span> $scheme://$host/packages;
+</span></span><span style=display:flex><span>        sub_filter_once off;
+</span></span><span style=display:flex><span>        sub_filter_types application/vnd.pypi.simple.v1+json application/vnd.pypi.simple.v1+html;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        location / <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>            proxy_set_header Connection <span style=color:#e6db74>&#34;&#34;</span>;
+</span></span><span style=display:flex><span>            proxy_set_header Accept-Encoding <span style=color:#e6db74>&#34;&#34;</span>;
+</span></span><span style=display:flex><span>            proxy_cache_valid any 5m;
+</span></span><span style=display:flex><span>            proxy_cache_valid <span style=color:#ae81ff>404</span> 1m;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            proxy_set_header Host pypi.org;
+</span></span><span style=display:flex><span>            proxy_ssl_name pypi.org;
+</span></span><span style=display:flex><span>            proxy_pass https://sg_pypi;
+</span></span><span style=display:flex><span>            proxy_redirect <span style=color:#e6db74>&#39;https://pypi.org&#39;</span> $scheme://$host;
+</span></span><span style=display:flex><span>        <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        location ^~ /simple <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>            proxy_set_header Connection <span style=color:#e6db74>&#34;&#34;</span>;
+</span></span><span style=display:flex><span>            proxy_set_header Accept-Encoding <span style=color:#e6db74>&#34;&#34;</span>;
+</span></span><span style=display:flex><span>            proxy_cache_valid any 5m;
+</span></span><span style=display:flex><span>            proxy_cache_valid <span style=color:#ae81ff>404</span> 1m;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            proxy_set_header Host pypi.org;
+</span></span><span style=display:flex><span>            proxy_pass https://sg_pypi;
+</span></span><span style=display:flex><span>            proxy_redirect <span style=color:#e6db74>&#39;https://pypi.org&#39;</span> $scheme://$host;
+</span></span><span style=display:flex><span>        <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        location ^~ /packages <span style=color:#f92672>{</span>
+</span></span><span style=display:flex><span>            proxy_set_header Connection <span style=color:#e6db74>&#34;&#34;</span>;
+</span></span><span style=display:flex><span>            proxy_set_header Accept-Encoding <span style=color:#e6db74>&#34;&#34;</span>;
+</span></span><span style=display:flex><span>            proxy_cache_valid any 1M;
+</span></span><span style=display:flex><span>            proxy_cache_valid <span style=color:#ae81ff>404</span> 1m;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            proxy_set_header Host files.pythonhosted.org;
+</span></span><span style=display:flex><span>            proxy_ssl_name files.pythonhosted.org;
+</span></span><span style=display:flex><span>            proxy_pass <span style=color:#e6db74>&#39;https://sg_pythonhosted/packages&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            proxy_redirect <span style=color:#e6db74>&#39;https://files.pythonhosted.org/packages&#39;</span> $scheme://$host/packages;
+</span></span><span style=display:flex><span>        <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>}</span>
+</span></span></code></pre></div></details><p>The Dockerfile is simply the aforementionned conf applied on top of a Nginx container:</p><details><summary><strong>Dockerfile</strong></summary><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-dockerfile data-lang=dockerfile><span style=display:flex><span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> nginx:latest</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> mkdir -p /var/lib/nginx/pypi/ /var/log/nginx/ /var/run/<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>ADD</span> nginx.conf /etc/nginx/nginx.conf<span style=color:#960050;background-color:#1e0010>
+</span></span></span></code></pre></div></details><p>Create the container image with <code>docker build -t pip_proxy .</code>. Then create a volume for storing the cached packages <code>docker volumes create pip-cache-data</code>.
+Then start a container:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sh data-lang=sh><span style=display:flex><span>docker run -d -p 80:80 -v pip-cache-data:/var/lib/nginx/pypi/ pip_proxy
+</span></span></code></pre></div><p>If you prefer to deploy this on a Kubernetes cluster :</p><pre tabindex=0><code>k create deployment pip-proxy --image &lt;image_tag&gt; --port 80
+k expose deployment pip-proxy --port 80 --target-port 80
+k create ingress pip-proxy --rule=&#34;pip.local.domain.fr/*=pip-proxy:80&#34;
+</code></pre><h3 id=telling-pip-to-use-our-proxy>telling pip to use our proxy</h3><p>From <code>pip3 install --help</code>:</p><pre tabindex=0><code>Package Index Options:
+  -i, --index-url &lt;url&gt;       Base URL of the Python Package Index (default https://pypi.org/simple). 
+                              This should point to a repository compliant with PEP 503 (the simple repository API) 
+                              or a local directory laid out in the same format.
+  --trusted-host &lt;hostname&gt;   Mark this host or host:port pair as trusted, even though it
+                              does not have valid or any HTTPS.
+</code></pre><p>This means we can redirect to another package index, using either the <code>-i</code> argument, or through the <strong>PIP_INDEX_URL</strong> env var.
+In case the proxy is using self-signed or non-valid certificates, you can use <code>--trusted-host</code> or the <strong>PIP_TRUSTED_HOST</strong> env var.</p><h3 id=changes-to-the-ci>changes to the CI</h3><p>In our Gitlab group, under Settings > CI/CD > Variables, we can configure these env vars across all our pipelines:</p><p><img src=/pip-proxy/env-var-gitlab.png alt="gitlab env var management"></p><p>Here is an excerpt of a CI stage installing torch:</p><p>Before, using directly the PYPI repo:</p><pre tabindex=0><code>&gt; time pip install --no-cache torch
+Collecting torch
+  Downloading torch-2.0.1-cp310-cp310-manylinux1_x86_64.whl (619.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 619.9/619.9 MB 11.4 MB/s eta 0:00:00
+...
+real	5m26.790s
+user	1m39.378s
+sys	0m38.067s
+</code></pre><p>After, using the proxy:</p><pre tabindex=0><code>PIP_INDEX_URL=https://pip.local.domain.fr/simple
+PIP_TRUSTED_HOST=pip.local.domain.fr
+&gt; pip install --no-cache torch
+Looking in indexes: https://pip.local.domain.fr/simple
+Collecting torch
+  Downloading http://pip.local.domain.fr/packages/8c/4d/17e07377c9c3d1a0c4eb3fde1c7c16b5a0ce6133ddbabc08ceef6b7f2645/torch-2.0.1-cp310-cp310-manylinux1_x86_64.whl (619.9 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 619.9/619.9 MB 89.7 MB/s eta 0:00:00
+...
+real	2m11.356s
+user	1m20.170s
+sys	0m32.175s
+</code></pre><p>We can see that on the second run, pip downloaded <code>torch</code> from our proxy, leading to an ~8x faster download speed. Some packages weren&rsquo;t cached, but next time they are being downloaded, our proxy will serve them from its cache, saving even more time.</p><p>For that particular example, we&rsquo;ve shaved off more than 3 minutes, or an improvement of ~2.5x time wise !
+This is a <em>best-case</em> scenario, with heavy packages, but we&rsquo;ve seen gains across the board.</p><p>I haven&rsquo;t been able to measure how many MB (or maybe GB) of packages we haven&rsquo;t downloaded from PYPI, and therefore how much bandwith we saved, but after only 2 weeks of using the cache, it is now weighting in at around 3.2GB. Speculating that we&rsquo;ve downloaded the same version of most of these packages at least a few more times, it&rsquo;s safe to say that we saved tens of GB !</p><pre tabindex=0><code>root@pip-proxy-54789c97df-jsg95:/# du -sh /var/lib/nginx/pypi/
+3.2G	/var/lib/nginx/pypi/
+</code></pre><p>Overall, the solution was deployed in less than a few hours. It&rsquo;s now &lsquo;<em>battletested</em>&rsquo; across hundreds of pipelines, has saved us hours of CI time and avoided re-re-re-downloading tens of gigabytes worth of packages from PYPI. Hopefully we&rsquo;ll never have any issues with it !</p><p><em>(new post on our CI being broken incoming..)</em></p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button next"><a href=/posts/reset-password-with-docker/><span class=button__text>Reset a lost account password using docker</span>
+<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg></span><span class=logo__text>k0rventen:~</span>
+<span class=logo__cursor></span></a><div class=copyright><span>© 2023 Powered by
+<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
+<span>Theme created by
+<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script>
+<script src=/assets/prism.js></script></div></body></html>
