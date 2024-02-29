@@ -1,14 +1,15 @@
 # blog
 
+[k0rventen.github.io](https://k0rventen.github.io)
 src for my blog/site using [hugo](https://gohugo.io).
 
 the src is in the main branch, and each commit triggers the rendering of the site in the gh-pages branch, on which Github Pages points.
 
 uses the [hello-friend theme](https://github.com/panr/hugo-theme-hello-friend). 
 
-to generate locally:
+develop.md:
 
-```sh
+```shell
 # clone the repo
 git clone https://github.com/k0rventen/k0rventen.github.io
 cd k0rventen.github.io

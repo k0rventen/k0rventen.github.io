@@ -4,7 +4,7 @@ showReadingTime: false
 tags: []
 ---
 
-I'm coco (aka k0rventen), 26 yo IT engineer.
+I'm coco (aka k0rventen), 27 yo IT engineer.
 
 Hot topics for me right now are kubernetes, devops & software supply chain.
 
