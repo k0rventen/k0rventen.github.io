@@ -22,4 +22,10 @@
 .video-shortcode {
     max-width: 100%;
     height: auto;
-  }
+}
+
+
+.collapsable-code{
+    box-shadow: 0px 0px 12px #333;
+    border-radius: 10px;
+}
