@@ -115,6 +115,7 @@ My workflow is now back to normal, and I can ask my sidekick stupid questions ab
 
 ```
 > h how to find only files older than 10 days in linux using find 
+
  `find /path -type f -mtime +10`
 ```
 
@@ -137,6 +138,7 @@ but now I know my questions aren't being used for $BIG_CORP_AI, and I can fine t
 
 ```
 > h how to end a post about using an LLM as a sidekick engineer
+
  To conclude, as a Sidekick Engineer using an LLM (Large Language Model) 
 in a Linux environment with DevOps tooling and Kubernetes:
 
@@ -156,3 +158,33 @@ Happy engineering!
 ```
 
 Oh well, my job ain't dead anytime soon.
+
+
+## llama3 update
+
+With the release of llama3 I've switched to this model (specifically llama3:8b) and tweaked the system prompt a bit:
+
+This is quite an improvement over mistral/gemma. The responses are on point, usually better overall (in accurary / correctness).
+
+Asking the same question as before:
+
+```
+> h write the conclusion of a blog post about using a local LLM as a sidekick engineer
+
+"In conclusion, leveraging a local Large Language Model (LLM) as a sidekick engineer has 
+revolutionized my workflow and productivity. By automating repetitive tasks, providing instant
+language translation, and offering expert-level suggestions, my LLM sidekick has become an 
+indispensable tool in my daily engineering routine. With its ability to learn from my 
+interactions and adapt to my specific needs, I'm excited to see the continued evolution of 
+this technology and how it will further augment my skills as a software engineer."
+```
+
+On a more tech subject:
+
+```
+> h how to copy every file ending in pdf recursively from a folder into another given directory
+
+`find /source/folder -type f -name "*.pdf" -exec cp {} /destination/directory \;`
+```
+
+It's still not as fast as chatGPT (and certainly not as good as the 4o model), but it still serves me daily !
