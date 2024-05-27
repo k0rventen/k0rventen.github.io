@@ -9,7 +9,7 @@ In my fish config I had the following function (from my dotfiles):
 </span><span class=post-read-time>— 5 min read</span></div><span class=post-tags><a href=/tags/10x-engineer/>#10x-engineer</a>&nbsp;
 <a href=/tags/llm/>#llm</a>&nbsp;
 <a href=/tags/ollama/>#ollama</a>&nbsp;
-<a href=/tags/ai/>#ai</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#what--why>what & why</a></li><li><a href=#how>how</a></li></ul></nav></aside><h1 id=what--why>what & why</h1><p>Lately (in the last year) I&rsquo;ve been using openAI&rsquo;s chatGPT 3.5-turbo in my terminal, as kind of a personnal rubberducky/sidekick engineer.</p><p>In my fish config I had the following function (from <a href=https://github.com/k0rventen/.dotfiles>my dotfiles</a>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># needs set -U OPENAI_KEY &lt;KEY&gt;</span>
+<a href=/tags/ai/>#ai</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#what--why>what & why</a></li><li><a href=#how>how</a><ul><li><a href=#llama3-update>llama3 update</a></li></ul></li></ul></nav></aside><h1 id=what--why>what & why</h1><p>Lately (in the last year) I&rsquo;ve been using openAI&rsquo;s chatGPT 3.5-turbo in my terminal, as kind of a personnal rubberducky/sidekick engineer.</p><p>In my fish config I had the following function (from <a href=https://github.com/k0rventen/.dotfiles>my dotfiles</a>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># needs set -U OPENAI_KEY &lt;KEY&gt;</span>
 </span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> command -q https; and command -q yq
 </span></span><span style=display:flex><span>  alias h <span style=color:#e6db74>&#39;hey_gpt&#39;</span>
 </span></span><span style=display:flex><span>  <span style=color:#66d9ef>function</span> hey_gpt --description <span style=color:#e6db74>&#34;talk to gpt&#34;</span>
@@ -70,6 +70,7 @@ used to measure distances within our solar system.
 </span></span><span style=display:flex><span>      ollama run sidekick <span style=color:#e6db74>&#34;</span>$argv<span style=color:#e6db74>&#34;</span>
 </span></span><span style=display:flex><span>end
 </span></span></code></pre></div><p>My workflow is now back to normal, and I can ask my sidekick stupid questions about the find / tar arguments daily:</p><pre tabindex=0><code>&gt; h how to find only files older than 10 days in linux using find 
+
  `find /path -type f -mtime +10`
 </code></pre><p>This model consumes around 4Go of RAM when loaded, and it averages 6 tokens/sec for eval:</p><pre tabindex=0><code>total duration:       6.938500483s
 load duration:        165.753µs
@@ -81,6 +82,7 @@ eval duration:        5.590406s
 eval rate:            6.26 tokens/s
 </code></pre><p>Obviously depending on the machine things might be slower than using openAI&rsquo;s API, and my machine might get a bit warm,
 but now I know my questions aren&rsquo;t being used for $BIG_CORP_AI, and I can fine tune the behavior and responses of the model !</p><pre tabindex=0><code>&gt; h how to end a post about using an LLM as a sidekick engineer
+
  To conclude, as a Sidekick Engineer using an LLM (Large Language Model) 
 in a Linux environment with DevOps tooling and Kubernetes:
 
@@ -97,7 +99,18 @@ updating it.
 health.
 
 Happy engineering!
-</code></pre><p>Oh well, my job ain&rsquo;t dead anytime soon.</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/lvm-resize/><span class=button__icon>←</span>
+</code></pre><p>Oh well, my job ain&rsquo;t dead anytime soon.</p><h2 id=llama3-update>llama3 update</h2><p>With the release of llama3 I&rsquo;ve switched to this model (specifically llama3:8b) and tweaked the system prompt a bit:</p><p>This is quite an improvement over mistral/gemma. The responses are on point, usually better overall (in accurary / correctness).</p><p>Asking the same question as before:</p><pre tabindex=0><code>&gt; h write the conclusion of a blog post about using a local LLM as a sidekick engineer
+
+&#34;In conclusion, leveraging a local Large Language Model (LLM) as a sidekick engineer has 
+revolutionized my workflow and productivity. By automating repetitive tasks, providing instant
+language translation, and offering expert-level suggestions, my LLM sidekick has become an 
+indispensable tool in my daily engineering routine. With its ability to learn from my 
+interactions and adapt to my specific needs, I&#39;m excited to see the continued evolution of 
+this technology and how it will further augment my skills as a software engineer.&#34;
+</code></pre><p>On a more tech subject:</p><pre tabindex=0><code>&gt; h how to copy every file ending in pdf recursively from a folder into another given directory
+
+`find /source/folder -type f -name &#34;*.pdf&#34; -exec cp {} /destination/directory \;`
+</code></pre><p>It&rsquo;s still not as fast as chatGPT (and certainly not as good as the 4o model), but it still serves me daily !</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/lvm-resize/><span class=button__icon>←</span>
 <span class=button__text>How to resize an LVM ext4 partition (and also non-LVM because old VMs)</span>
 </a></span><span class="button next"><a href=/posts/shared-docker-registry-ci/><span class=button__text>Remote layer cache for multiple docker CI runners</span>
 <span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
