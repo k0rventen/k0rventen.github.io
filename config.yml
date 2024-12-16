@@ -1,0 +1,95 @@
+baseURL: "/"
+title: k0rventen's blog
+paginate: 5
+theme: PaperMod
+
+enableRobotsTXT: true
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+
+minify:
+  disableXML: true
+
+params:
+  env: production # to enable google analytics, opengraph, twitter-cards and schema.
+  title: k0rventen's blog
+  DateFormat: "January 2, 2006"
+  defaultTheme: auto # dark, light
+  disableThemeToggle: false
+
+  ShowReadingTime: true
+  ShowShareButtons: false
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowWordCount: true
+  ShowRssButtonInSectionTermList: true
+  UseHugoToc: true
+  disableSpecial1stPost: false
+  disableScrollToTop: false
+  comments: false
+  hidemeta: false
+  hideSummary: false
+  showtoc: true
+  tocopen: false
+  fuseOpts:
+    isCaseSensitive: false
+    includeScore: true
+    shouldSort: true
+    location: 0
+    distance: 1000
+    threshold: 0.1
+    minMatchCharLength: 2
+    limit: 3 # refer: https://www.fusejs.io/api/methods.html#search
+    keys: ["title", "summary", "content"]
+
+  label:
+    text: "> k0rventen: ~"
+  homeInfoParams:
+    Title: "Ciao ! 💻"
+    Content: |
+      I’m coco (aka [k0rventen](https://github.com/k0rventen)), 28 yo IT engineer.
+
+      Hot topics for me right now are kubernetes, devops & software supply chain.
+
+      As I don’t have a very good memory, this is a place for me to put projects and important or tedious things that I’ve done, so that I won’t have to reinvent the wheel each time a similar situation arise.
+
+      But it’s also a way of sharing my ideas, solutions etc so that maybe one day it might help someone (hi future self).
+
+
+
+
+  cover:
+    hidden: true # hide everywhere but not in structured data
+    hiddenInList: true # hide on list pages and home
+    hiddenInSingle: true # hide on single page
+
+menu:
+  main:
+    - identifier: posts
+      name: posts
+      url: /posts
+    - identifier: links
+      name: links
+      url: /links
+    - identifier: search
+      name: search
+      url: /search
+
+
+# Read: https://github.com/adityatelange/hugo-PaperMod/wiki/FAQs#using-hugos-syntax-highlighter-chroma
+pygmentsUseClasses: true
+markup:
+  highlight:
+    noClasses: false
+    # anchorLineNos: true
+    # codeFences: true
+    # guessSyntax: true
+    # lineNos: true
+    # style: monokai
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON # necessary for search
