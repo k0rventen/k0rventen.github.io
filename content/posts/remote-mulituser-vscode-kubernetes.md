@@ -8,7 +8,7 @@ tags: ["k8s","vscode","dev"]
 _a fully featured, multi-user, dev env running on your k8s cluster that can coldboot in less than 10s_
 
 
-{{< video src="/remote-vscode/demo.mp4" type="video/mp4" preload="auto" >}}
+{{< video src="/remote-vscode/demo.mp4" type="video/mp4" >}}
 
 
 # what & why
@@ -348,6 +348,6 @@ The first time you login, it will record your user/password combo.
 
 Once you're in, a pod will be created for your environment, and you should see the familiar vscode interface.
 
-{{< video src="/remote-vscode/demo.mp4" type="video/mp4" preload="auto" >}}
+{{< video src="/remote-vscode/demo.mp4" type="video/mp4" >}}
 
 And voila! You can now use the power of your cluster to handle the majority of your workflow, while making your laptop cooler and maybe quieter !

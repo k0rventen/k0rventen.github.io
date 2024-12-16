@@ -51,7 +51,7 @@ Here is what it looks like inside:
 After some sanding of the exterior of the box, it has quite a nice finish to it and looks decent enough:
 
 
-{{< video src="/e-paper-display/box.mp4" type="video/mp4" preload="auto" >}}
+{{< video src="/e-paper-display/box.mp4" type="video/mp4" >}}
 
 
 Now that we have a working physical thing, onto the software !

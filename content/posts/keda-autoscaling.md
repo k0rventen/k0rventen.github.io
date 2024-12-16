@@ -7,7 +7,7 @@ tags : ["k8s","scaling","KEDA"]
 
 _Scale workloads based on the size of a rabbitMQ queue automatically, and have on-demand processing for any tasks_
 
-{{< video src="/keda/keda_run.mp4" type="video/mp4" preload="auto" >}}
+{{< video src="/keda/keda_run.mp4" type="video/mp4">}}
 
 _[A sped up example of autoscaling using KEDA with a rabbitMQ setup](#screencast)_
 

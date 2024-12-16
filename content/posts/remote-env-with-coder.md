@@ -7,7 +7,7 @@ tags: ["remote","k8s","coder"]
 
 _A fleet of remote development environments (with docker, fish shell, and even minikube) running in your kubernetes cluster, accessible through VS Code in the browser !_
 
-{{< video src="/coder-remote-env/demo.mp4" type="video/mp4" preload="auto" >}}
+{{< video src="/coder-remote-env/demo.mp4" type="video/mp4" >}}
 
 
 # What & why
@@ -512,7 +512,7 @@ We can now create a Workspace based on the provider we defined earlier:
 Wait for the pod to be created and the `code-server` button to become available.
 Now we can work using a web browser from our thin & light laptop (or even a Raspberry Pi) with the power of a cluster:
 
-{{< video src="/coder-remote-env/demo.mp4" type="video/mp4" preload="auto" >}}
+{{< video src="/coder-remote-env/demo.mp4" type="video/mp4" >}}
 
 
 ## Disclaimer
