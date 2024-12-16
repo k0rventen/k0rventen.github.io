@@ -1,68 +1,640 @@
-<!doctype html><html lang=en><head><title>A smart city demonstrator ::
-</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="A smart city model that I helped build a few years back, to better explain what IoT could mean for a city:
-what &amp;amp; why When I arrived at $old_job in 2019, one of my first project was to build a small scale, smart city model that could :
-be tranported anywhere, be installed on a table easily show what improvements to city life could be made using IoT and be pretty to lure people on our stands ;) The actual model was built by architecture students, with whom I devised a plan to integrate various sensors, LEDs and interactive elements to play with."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/smartcity/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="A smart city demonstrator"><meta name=twitter:description content="Integrating IoT at city-scale"><meta property="og:title" content="A smart city demonstrator"><meta property="og:description" content="Integrating IoT at city-scale"><meta property="og:type" content="article"><meta property="og:url" content="/posts/smartcity/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2024-01-10T00:00:00+00:00"><meta property="article:modified_time" content="2024-01-10T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a><span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>A smart city demonstrator</h1><div class=post-meta><span class=post-date>2024-01-10
-</span><span class=post-read-time>— 5 min read</span></div><span class=post-tags><a href=/tags/smartcity/>#smartcity</a>&nbsp;
-<a href=/tags/embedded/>#embedded</a>&nbsp;
-<a href=/tags/arduino/>#arduino</a>&nbsp;
-<a href=/tags/lora/>#lora</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#what--why>what & why</a></li><li><a href=#how>how</a><ul><li><ul><li><a href=#hardware-listing>Hardware listing</a></li></ul></li><li><a href=#configuration-adjustements>Configuration adjustements</a></li><li><a href=#scenarios>Scenarios</a></li><li><a href=#payload-structure-of-the-lora-frame>Payload structure of the LoRa frame</a></li><li><a href=#cloud-platform>cloud platform</a></li></ul></li></ul></nav></aside><p><em>A smart city model that I helped build a few years back, to better explain what IoT could mean for a city:</em></p><p><img src=/smartcity/smartcity-cl24.jpeg alt=demo></p><h1 id=what--why>what & why</h1><p>When I arrived at $old_job in 2019, one of my first project was to build a small scale, smart city model that could :</p><ul><li>be tranported anywhere,</li><li>be installed on a table easily</li><li>show what improvements to city life could be made using IoT</li><li>and be pretty to lure people on our stands ;)</li></ul><p>The actual model was built by architecture students, with whom I devised a plan to integrate various sensors, LEDs and interactive elements to play with.
-The whole thing took around a week to be finished.</p><p>The model has been on display at Cisco Live 2019 and 2024 (that&rsquo;s the picture above), at various events in France (Salon des Maires..) and is now at Axians in La Defense.</p><h1 id=how>how</h1><p>Full code is here: <a href=https://github.com/k0rventen/smartcity>https://github.com/k0rventen/smartcity</a></p><p>Here is a quick diagram showing every major component of the model :</p><p><img src=/smartcity/diagram.png alt=diagram></p><ul><li>Various sensors (temperature, humidity, noise, parking spots..) are connected to Arduinos equipped with LoRa antennas, that transmits to a nearby 4G LoRa gateway.</li><li>Data & management informations are uploaded to our Acklio server.</li><li>Actual sensor data is retrieved by an AWS instance for decoding/storage/visualisation.</li></ul><p>Each section below is describing one of those components.</p><h3 id=hardware-listing>Hardware listing</h3><p>Here is a list of the hardware components used in the smart city model :</p><ul><li>3 <a href=https://www.gotronic.fr/art-carte-uno-r3-uno-v3-26125.htm>Arduino Uno</a> as micro-controllers, on top of which sits:<ul><li><a href=https://www.gotronic.fr/art-module-grove-base-shield-103030000-19068.htm>Grove Hat</a> for easy cable management, with the following sensors :<ul><li><a href=https://www.gotronic.fr/art-capteur-de-temperature-grove-101020015-18965.htm>Temperature sensor</a>,</li><li><a href=https://www.gotronic.fr/art-capteur-sonore-grove-101020063-20631.htm>Noise sensor</a>,</li><li><a href=https://www.gotronic.fr/art-detecteur-de-lumiere-grove-v1-2-101020132-25427.htm>Light sensor</a>,</li><li><a href=https://www.gotronic.fr/art-capteur-a-effet-hall-grove-101020046-18985.htm>Hall effect sensors</a>,</li><li><a href=https://www.gotronic.fr/art-led-8-mm-rgb-variable-grove-101020472-27991.htm>Standard LEDs</a>,</li><li><a href=https://www.gotronic.fr/art-led-8-mm-rgb-grove-v2-0-104020048-27067.htm>Chainable LEDs</a>,</li><li><a href=https://www.gotronic.fr/art-telemetre-a-ultrasons-grove-101020010-18976.htm>Ultrasonic distance sensors</a>,</li></ul></li><li>A <a href=https://www.cooking-hacks.com/lorawan-radio-shield-for-arduino-868-mhz>LoRaWAN antenna</a>, to upload the gathered data to a nearby gateway,</li></ul></li><li>A <a href=https://www.multitech.com/brands/multiconnect-conduit-ap>Multitech LoRa gateaway</a>, to receive the payloads from the antenna</li></ul><p>Each arduino is responsible for a specific task :</p><ul><li>Arduino 1 is managing the street lamps and monitoring the temperature / noise level of the city,</li><li>Arduino 2 is managing the city&rsquo;s trash cans</li><li>Arduino 3 is managing the parking spots</li></ul><h2 id=configuration-adjustements>Configuration adjustements</h2><p>The same boilerplate file is deployed to every arduino. The logic is the same everywhere, the arduino fetches the sensors and uploads their data to the cloud through an LoRa gateway. The only difference between each Arduino is which sensors are connected and on which pin.</p><p>This is the configuration currently is use in the model in <code>header.hpp</code>.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>int</span> UltrasonicSensors[] <span style=color:#f92672>=</span> {<span style=color:#ae81ff>2</span>,<span style=color:#ae81ff>3</span>,<span style=color:#ae81ff>4</span>};
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> HallSensors[] <span style=color:#f92672>=</span> {<span style=color:#ae81ff>6</span>,<span style=color:#ae81ff>7</span>,<span style=color:#ae81ff>8</span>,<span style=color:#ae81ff>2</span>,<span style=color:#ae81ff>3</span>,<span style=color:#ae81ff>5</span>};
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> TemperatureSensor <span style=color:#f92672>=</span> A2;
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> SoundSensor <span style=color:#f92672>=</span> A3;
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> BrightnessSensor <span style=color:#f92672>=</span> A1;
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> FloodSensor <span style=color:#f92672>=</span> <span style=color:#ae81ff>2</span>;
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> FloodLED <span style=color:#f92672>=</span> <span style=color:#ae81ff>3</span>;
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> WasteLEDs[] <span style=color:#f92672>=</span> {<span style=color:#ae81ff>6</span>,<span style=color:#ae81ff>7</span>,<span style=color:#ae81ff>8</span>};
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> ParkingLEDS[] <span style=color:#f92672>=</span> {A2,A3,<span style=color:#ae81ff>9</span>,<span style=color:#ae81ff>4</span>,A0,A1};
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> StreetLampsNumber <span style=color:#f92672>=</span> <span style=color:#ae81ff>8</span>;
-</span></span><span style=display:flex><span>ChainableLED <span style=color:#a6e22e>StreetLamps</span>(<span style=color:#ae81ff>4</span>,<span style=color:#ae81ff>5</span>, StreetLampsNumber);
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>const</span> <span style=color:#66d9ef>int</span> RUNTIME_INTERVAL <span style=color:#f92672>=</span> <span style=color:#ae81ff>1000</span>;   <span style=color:#75715e>//! time in ms between runs
-</span></span></span></code></pre></div><p>This <code>header.hpp</code> reflects:</p><ul><li>which scenarios are being used by this arduino (using the <code>#DEFINE</code> statements)</li><li>which sensors are connected to the arduino and their positions on the Grove Hat.</li></ul><h2 id=scenarios>Scenarios</h2><p>The scenarios are also defined in the <code>.hpp</code> file, so they are only compiled/present on the arduinos that need them.
-For example the parking scenario, which returns the occupancy for 6 parking spots on the model:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#75715e>#ifdef PARKINGSCENARIO
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#75715e>/**
-</span></span></span><span style=display:flex><span><span style=color:#75715e> * @brief Scenario that controls the parking spots of the city.
-</span></span></span><span style=display:flex><span><span style=color:#75715e> *
-</span></span></span><span style=display:flex><span><span style=color:#75715e> * Each parking spot is monitored and connected to a LED.
-</span></span></span><span style=display:flex><span><span style=color:#75715e> * If the parking sport is taken, the LED is up.
-</span></span></span><span style=display:flex><span><span style=color:#75715e> *
-</span></span></span><span style=display:flex><span><span style=color:#75715e> */</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>void</span> <span style=color:#a6e22e>ParkingScenario</span>()
-</span></span><span style=display:flex><span>{
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> (<span style=color:#66d9ef>int</span> i <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>; i <span style=color:#f92672>&lt;</span> HallSensorsLen; i<span style=color:#f92672>++</span>)
-</span></span><span style=display:flex><span>    {
-</span></span><span style=display:flex><span>        <span style=color:#66d9ef>bool</span> isTaken <span style=color:#f92672>=</span> <span style=color:#f92672>!</span><span style=color:#a6e22e>digitalRead</span>(HallSensors[i]);
-</span></span><span style=display:flex><span><span style=color:#75715e>#ifdef DEBUG
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>        Serial.<span style=color:#a6e22e>print</span>(<span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\t</span><span style=color:#e6db74>&#34;</span>);
-</span></span><span style=display:flex><span>        Serial.<span style=color:#a6e22e>print</span>(i);
-</span></span><span style=display:flex><span>        Serial.<span style=color:#a6e22e>print</span>(<span style=color:#e6db74>&#34; -&gt; &#34;</span>);
-</span></span><span style=display:flex><span>        Serial.<span style=color:#a6e22e>println</span>(isTaken);
-</span></span><span style=display:flex><span><span style=color:#75715e>#endif
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>        <span style=color:#66d9ef>if</span> (isTaken)
-</span></span><span style=display:flex><span>        {
-</span></span><span style=display:flex><span>            <span style=color:#a6e22e>SetLedStatus</span>(ParkingLEDS[i], HIGH);
-</span></span><span style=display:flex><span>            LoRaPayload[i <span style=color:#f92672>*</span> <span style=color:#ae81ff>2</span>] <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;1&#39;</span>;
-</span></span><span style=display:flex><span>        }
-</span></span><span style=display:flex><span>        <span style=color:#66d9ef>else</span>
-</span></span><span style=display:flex><span>        {
-</span></span><span style=display:flex><span>            <span style=color:#a6e22e>SetLedStatus</span>(ParkingLEDS[i], LOW);
-</span></span><span style=display:flex><span>            LoRaPayload[i <span style=color:#f92672>*</span> <span style=color:#ae81ff>2</span>] <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;0&#39;</span>;
-</span></span><span style=display:flex><span>        }
-</span></span><span style=display:flex><span>    }
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span><span style=color:#75715e>#endif
-</span></span></span></code></pre></div><h2 id=payload-structure-of-the-lora-frame>Payload structure of the LoRa frame</h2><p>Each arduino has it&rsquo;s own various data to send, so each payload is different :</p><p><strong>Garbage scenario</strong></p><table><thead><tr><th>Byte num</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th></tr></thead><tbody><tr><td>Desc</td><td>Trash 1</td><td>Null</td><td>Trash 2</td><td>Null</td><td>Trash 3</td></tr><tr><td>Value</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td></tr></tbody></table><p>Explanations :</p><ul><li>Trash : 1 means the trashcan is full, 0 means it&rsquo;s not.</li></ul><p><strong>Parking scenario</strong></p><table><thead><tr><th>Byte num</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th></tr></thead><tbody><tr><td>Desc</td><td>Parking 1</td><td>Null</td><td>Parking 2</td><td>Null</td><td>Parking 3</td><td>Null</td><td>Parking 4</td><td>Null</td><td>Parking 5</td><td>Null</td><td>Parking 6</td></tr><tr><td>Value</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr></tbody></table><p>Explanations :</p><ul><li>Parking : 1 means the parking spot is taken, 0 means it&rsquo;s free.</li></ul><p><strong>Street lamps & metrics scenario</strong></p><table><thead><tr><th>Byte num</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th></tr></thead><tbody><tr><td>Desc</td><td>Lights status</td><td>Null</td><td>Null</td><td>Flood status</td><td>Null</td><td>Null</td><td>Null</td><td>Null</td><td>Null</td><td>Null</td><td>Light level</td><td>Light level</td><td>Noise</td><td>Noise</td><td>Temp</td><td>Temp</td></tr><tr><td>Value</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>8</td><td>9</td><td>4</td><td>8</td><td>2</td><td>5</td></tr></tbody></table><p>Explanations :</p><ul><li>Lights status : 1 means the lights are on, 0 means off.</li><li>Flood status : 1 means flood detected, 0 means no flood detected</li><li>Light level : Bytes 10 and 11 are forming a numnber reflecting the percentage of light perceived by the sensor, here 89%.</li><li>Noise : Bytes 12 and 13 are the current noise level reading in decibels. Here is 48 dB.</li><li>Temp : Bytes 14 and 15, the current temperature reading in Celsius, here 25°C.</li></ul><h2 id=cloud-platform>cloud platform</h2><p>A &lsquo;cloud&rsquo; platform gathers the data sent by the model through a LoRa GW. It&rsquo;s a simple python worker that translates MQTT messages to influxDB. The latter is used by Grafana to display &rsquo;live&rsquo; and historical data:</p><p><img src=/smartcity/grafana.jpg alt=grafana></p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/shared-docker-registry-ci/><span class=button__icon>←</span>
-<span class=button__text>Remote layer cache for multiple docker CI runners</span>
-</a></span><span class="button next"><a href=/posts/watchy/><span class=button__text>An E-Ink watch</span>
-<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span></a><div class=copyright><span>© 2024 Powered by
-<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
-<span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script><script src=/assets/prism.js></script></div></body></html>
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>A smart city demonstrator | k0rventen&#39;s blog</title>
+<meta name="keywords" content="smartcity, embedded, arduino, lora">
+<meta name="description" content="Integrating IoT at city-scale">
+<meta name="author" content="">
+<link rel="canonical" href="/posts/smartcity/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.d6fcd20a4fb86efa4dfac8ec95da60244cc8871042183da1ef28e3a762ad79c8.css" integrity="sha256-1vzSCk&#43;4bvpN&#43;sjsldpgJEzIhxBCGD2h7yjjp2Ktecg=" rel="preload stylesheet" as="style">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="/posts/smartcity/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/smartcity/">
+  <meta property="og:site_name" content="k0rventen&#39;s blog">
+  <meta property="og:title" content="A smart city demonstrator">
+  <meta property="og:description" content="Integrating IoT at city-scale">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-01-10T00:00:00+00:00">
+    <meta property="article:modified_time" content="2024-01-10T00:00:00+00:00">
+    <meta property="article:tag" content="Smartcity">
+    <meta property="article:tag" content="Embedded">
+    <meta property="article:tag" content="Arduino">
+    <meta property="article:tag" content="Lora">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="A smart city demonstrator">
+<meta name="twitter:description" content="Integrating IoT at city-scale">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "A smart city demonstrator",
+      "item": "/posts/smartcity/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "A smart city demonstrator",
+  "name": "A smart city demonstrator",
+  "description": "Integrating IoT at city-scale",
+  "keywords": [
+    "smartcity", "embedded", "arduino", "lora"
+  ],
+  "articleBody": "A smart city model that I helped build a few years back, to better explain what IoT could mean for a city:\nwhat \u0026 why When I arrived at $old_job in 2019, one of my first project was to build a small scale, smart city model that could :\nbe tranported anywhere, be installed on a table easily show what improvements to city life could be made using IoT and be pretty to lure people on our stands ;) The actual model was built by architecture students, with whom I devised a plan to integrate various sensors, LEDs and interactive elements to play with. The whole thing took around a week to be finished.\nThe model has been on display at Cisco Live 2019 and 2024 (that’s the picture above), at various events in France (Salon des Maires..) and is now at Axians in La Defense.\nhow Full code is here: https://github.com/k0rventen/smartcity\nHere is a quick diagram showing every major component of the model :\nVarious sensors (temperature, humidity, noise, parking spots..) are connected to Arduinos equipped with LoRa antennas, that transmits to a nearby 4G LoRa gateway. Data \u0026 management informations are uploaded to our Acklio server. Actual sensor data is retrieved by an AWS instance for decoding/storage/visualisation. Each section below is describing one of those components.\nHardware listing Here is a list of the hardware components used in the smart city model :\n3 Arduino Uno as micro-controllers, on top of which sits: Grove Hat for easy cable management, with the following sensors : Temperature sensor, Noise sensor, Light sensor, Hall effect sensors, Standard LEDs, Chainable LEDs, Ultrasonic distance sensors, A LoRaWAN antenna, to upload the gathered data to a nearby gateway, A Multitech LoRa gateaway, to receive the payloads from the antenna Each arduino is responsible for a specific task :\nArduino 1 is managing the street lamps and monitoring the temperature / noise level of the city, Arduino 2 is managing the city’s trash cans Arduino 3 is managing the parking spots Configuration adjustements The same boilerplate file is deployed to every arduino. The logic is the same everywhere, the arduino fetches the sensors and uploads their data to the cloud through an LoRa gateway. The only difference between each Arduino is which sensors are connected and on which pin.\nThis is the configuration currently is use in the model in header.hpp.\nint UltrasonicSensors[] = {2,3,4}; int HallSensors[] = {6,7,8,2,3,5}; int TemperatureSensor = A2; int SoundSensor = A3; int BrightnessSensor = A1; int FloodSensor = 2; int FloodLED = 3; int WasteLEDs[] = {6,7,8}; int ParkingLEDS[] = {A2,A3,9,4,A0,A1}; int StreetLampsNumber = 8; ChainableLED StreetLamps(4,5, StreetLampsNumber); const int RUNTIME_INTERVAL = 1000; //! time in ms between runs This header.hpp reflects:\nwhich scenarios are being used by this arduino (using the #DEFINE statements) which sensors are connected to the arduino and their positions on the Grove Hat. Scenarios The scenarios are also defined in the .hpp file, so they are only compiled/present on the arduinos that need them. For example the parking scenario, which returns the occupancy for 6 parking spots on the model:\n#ifdef PARKINGSCENARIO /** * @brief Scenario that controls the parking spots of the city. * * Each parking spot is monitored and connected to a LED. * If the parking sport is taken, the LED is up. * */ void ParkingScenario() { for (int i = 0; i \u003c HallSensorsLen; i++) { bool isTaken = !digitalRead(HallSensors[i]); #ifdef DEBUG Serial.print(\"\\t\"); Serial.print(i); Serial.print(\" -\u003e \"); Serial.println(isTaken); #endif if (isTaken) { SetLedStatus(ParkingLEDS[i], HIGH); LoRaPayload[i * 2] = '1'; } else { SetLedStatus(ParkingLEDS[i], LOW); LoRaPayload[i * 2] = '0'; } } } #endif Payload structure of the LoRa frame Each arduino has it’s own various data to send, so each payload is different :\nGarbage scenario\nByte num 0 1 2 3 4 Desc Trash 1 Null Trash 2 Null Trash 3 Value 1 0 1 0 1 Explanations :\nTrash : 1 means the trashcan is full, 0 means it’s not. Parking scenario\nByte num 0 1 2 3 4 5 6 7 8 9 10 Desc Parking 1 Null Parking 2 Null Parking 3 Null Parking 4 Null Parking 5 Null Parking 6 Value 1 0 1 0 0 0 1 0 0 0 1 Explanations :\nParking : 1 means the parking spot is taken, 0 means it’s free. Street lamps \u0026 metrics scenario\nByte num 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 Desc Lights status Null Null Flood status Null Null Null Null Null Null Light level Light level Noise Noise Temp Temp Value 1 0 0 1 0 0 0 0 0 0 8 9 4 8 2 5 Explanations :\nLights status : 1 means the lights are on, 0 means off. Flood status : 1 means flood detected, 0 means no flood detected Light level : Bytes 10 and 11 are forming a numnber reflecting the percentage of light perceived by the sensor, here 89%. Noise : Bytes 12 and 13 are the current noise level reading in decibels. Here is 48 dB. Temp : Bytes 14 and 15, the current temperature reading in Celsius, here 25°C. cloud platform A ‘cloud’ platform gathers the data sent by the model through a LoRa GW. It’s a simple python worker that translates MQTT messages to influxDB. The latter is used by Grafana to display ’live’ and historical data:\n",
+  "wordCount" : "904",
+  "inLanguage": "en",
+  "datePublished": "2024-01-10T00:00:00Z",
+  "dateModified": "2024-01-10T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/smartcity/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "k0rventen's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="/" accesskey="h" title="&gt; k0rventen: ~ (Alt + H)">&gt; k0rventen: ~</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/links" title="links">
+                    <span>links</span>
+                </a>
+            </li>
+            <li>
+                <a href="/posts" title="posts">
+                    <span>posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="/search" title="search (Alt &#43; /)" accesskey=/>
+                    <span>search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="/">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      A smart city demonstrator
+    </h1>
+    <div class="post-description">
+      Integrating IoT at city-scale
+    </div>
+    <div class="post-meta"><span title='2024-01-10 00:00:00 +0000 UTC'>January 10, 2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;904 words
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#hardware-listing">Hardware listing</a></li>
+      </ul>
+    </li>
+    <li><a href="#configuration-adjustements">Configuration adjustements</a></li>
+    <li><a href="#scenarios">Scenarios</a></li>
+    <li><a href="#payload-structure-of-the-lora-frame">Payload structure of the LoRa frame</a></li>
+    <li><a href="#cloud-platform">cloud platform</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p><em>A smart city model that I helped build a few years back, to better explain what IoT could mean for a city:</em></p>
+<p><img alt="demo" loading="lazy" src="/smartcity/smartcity-cl24.jpeg"></p>
+<h1 id="what--why">what &amp; why<a hidden class="anchor" aria-hidden="true" href="#what--why">#</a></h1>
+<p>When I arrived at $old_job in 2019, one of my first project was to build a small scale, smart city model that could :</p>
+<ul>
+<li>be tranported anywhere,</li>
+<li>be installed on a table easily</li>
+<li>show what improvements to city life could be made using IoT</li>
+<li>and be pretty to lure people on our stands ;)</li>
+</ul>
+<p>The actual model was built by architecture students, with whom I devised a plan to integrate various sensors, LEDs and interactive elements to play with.
+The whole thing took around a week to be finished.</p>
+<p>The model has been on display at Cisco Live 2019 and 2024 (that&rsquo;s the picture above), at various events in France (Salon des Maires..) and is now at Axians in La Defense.</p>
+<h1 id="how">how<a hidden class="anchor" aria-hidden="true" href="#how">#</a></h1>
+<p>Full code is here: <a href="https://github.com/k0rventen/smartcity">https://github.com/k0rventen/smartcity</a></p>
+<p>Here is a quick diagram showing every major component of the model :</p>
+<p><img alt="diagram" loading="lazy" src="/smartcity/diagram.png"></p>
+<ul>
+<li>Various sensors (temperature, humidity, noise, parking spots..) are connected to Arduinos equipped with LoRa antennas, that transmits to a nearby 4G LoRa gateway.</li>
+<li>Data &amp; management informations are uploaded to our Acklio server.</li>
+<li>Actual sensor data is retrieved by an AWS instance for decoding/storage/visualisation.</li>
+</ul>
+<p>Each section below is describing one of those components.</p>
+<h3 id="hardware-listing">Hardware listing<a hidden class="anchor" aria-hidden="true" href="#hardware-listing">#</a></h3>
+<p>Here is a list of the hardware components used in the smart city model :</p>
+<ul>
+<li>3 <a href="https://www.gotronic.fr/art-carte-uno-r3-uno-v3-26125.htm">Arduino Uno</a> as micro-controllers, on top of which sits:
+<ul>
+<li><a href="https://www.gotronic.fr/art-module-grove-base-shield-103030000-19068.htm">Grove Hat</a> for easy cable management, with the following sensors :
+<ul>
+<li><a href="https://www.gotronic.fr/art-capteur-de-temperature-grove-101020015-18965.htm">Temperature sensor</a>,</li>
+<li><a href="https://www.gotronic.fr/art-capteur-sonore-grove-101020063-20631.htm">Noise sensor</a>,</li>
+<li><a href="https://www.gotronic.fr/art-detecteur-de-lumiere-grove-v1-2-101020132-25427.htm">Light sensor</a>,</li>
+<li><a href="https://www.gotronic.fr/art-capteur-a-effet-hall-grove-101020046-18985.htm">Hall effect sensors</a>,</li>
+<li><a href="https://www.gotronic.fr/art-led-8-mm-rgb-variable-grove-101020472-27991.htm">Standard LEDs</a>,</li>
+<li><a href="https://www.gotronic.fr/art-led-8-mm-rgb-grove-v2-0-104020048-27067.htm">Chainable LEDs</a>,</li>
+<li><a href="https://www.gotronic.fr/art-telemetre-a-ultrasons-grove-101020010-18976.htm">Ultrasonic distance sensors</a>,</li>
+</ul>
+</li>
+<li>A <a href="https://www.cooking-hacks.com/lorawan-radio-shield-for-arduino-868-mhz">LoRaWAN antenna</a>, to upload the gathered data to a nearby gateway,</li>
+</ul>
+</li>
+<li>A <a href="https://www.multitech.com/brands/multiconnect-conduit-ap">Multitech LoRa gateaway</a>, to receive the payloads from the antenna</li>
+</ul>
+<p>Each arduino is responsible for a specific task :</p>
+<ul>
+<li>Arduino 1 is managing the street lamps and monitoring the temperature / noise level of the city,</li>
+<li>Arduino 2 is managing the city&rsquo;s trash cans</li>
+<li>Arduino 3 is managing the parking spots</li>
+</ul>
+<h2 id="configuration-adjustements">Configuration adjustements<a hidden class="anchor" aria-hidden="true" href="#configuration-adjustements">#</a></h2>
+<p>The same boilerplate file is deployed to every arduino. The logic is the same everywhere, the arduino fetches the sensors and uploads their data to the cloud through an LoRa gateway. The only difference between each Arduino is which sensors are connected and on which pin.</p>
+<p>This is the configuration currently is use in the model in <code>header.hpp</code>.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">UltrasonicSensors</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">HallSensors</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">TemperatureSensor</span> <span class="o">=</span> <span class="n">A2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">SoundSensor</span> <span class="o">=</span> <span class="n">A3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">BrightnessSensor</span> <span class="o">=</span> <span class="n">A1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">FloodSensor</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">FloodLED</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">WasteLEDs</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">ParkingLEDS</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="n">A2</span><span class="p">,</span><span class="n">A3</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="n">A0</span><span class="p">,</span><span class="n">A1</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">StreetLampsNumber</span> <span class="o">=</span> <span class="mi">8</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">ChainableLED</span> <span class="nf">StreetLamps</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span> <span class="n">StreetLampsNumber</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="n">RUNTIME_INTERVAL</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">;</span>   <span class="c1">//! time in ms between runs
+</span></span></span></code></pre></div><p>This <code>header.hpp</code> reflects:</p>
+<ul>
+<li>which scenarios are being used by this arduino (using the <code>#DEFINE</code> statements)</li>
+<li>which sensors are connected to the arduino and their positions on the Grove Hat.</li>
+</ul>
+<h2 id="scenarios">Scenarios<a hidden class="anchor" aria-hidden="true" href="#scenarios">#</a></h2>
+<p>The scenarios are also defined in the <code>.hpp</code> file, so they are only compiled/present on the arduinos that need them.
+For example the parking scenario, which returns the occupancy for 6 parking spots on the model:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#ifdef PARKINGSCENARIO
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="cm">/**
+</span></span></span><span class="line"><span class="cl"><span class="cm"> * @brief Scenario that controls the parking spots of the city.
+</span></span></span><span class="line"><span class="cl"><span class="cm"> *
+</span></span></span><span class="line"><span class="cl"><span class="cm"> * Each parking spot is monitored and connected to a LED.
+</span></span></span><span class="line"><span class="cl"><span class="cm"> * If the parking sport is taken, the LED is up.
+</span></span></span><span class="line"><span class="cl"><span class="cm"> *
+</span></span></span><span class="line"><span class="cl"><span class="cm"> */</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">ParkingScenario</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">HallSensorsLen</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">bool</span> <span class="n">isTaken</span> <span class="o">=</span> <span class="o">!</span><span class="nf">digitalRead</span><span class="p">(</span><span class="n">HallSensors</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef DEBUG
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>        <span class="n">Serial</span><span class="p">.</span><span class="nf">print</span><span class="p">(</span><span class="s">&#34;</span><span class="se">\t</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Serial</span><span class="p">.</span><span class="nf">print</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Serial</span><span class="p">.</span><span class="nf">print</span><span class="p">(</span><span class="s">&#34; -&gt; &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Serial</span><span class="p">.</span><span class="nf">println</span><span class="p">(</span><span class="n">isTaken</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">isTaken</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nf">SetLedStatus</span><span class="p">(</span><span class="n">ParkingLEDS</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">HIGH</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">LoRaPayload</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;1&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="k">else</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nf">SetLedStatus</span><span class="p">(</span><span class="n">ParkingLEDS</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">LOW</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">LoRaPayload</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;0&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span></code></pre></div><h2 id="payload-structure-of-the-lora-frame">Payload structure of the LoRa frame<a hidden class="anchor" aria-hidden="true" href="#payload-structure-of-the-lora-frame">#</a></h2>
+<p>Each arduino has it&rsquo;s own various data to send, so each payload is different :</p>
+<p><strong>Garbage scenario</strong></p>
+<table>
+  <thead>
+      <tr>
+          <th>Byte num</th>
+          <th>0</th>
+          <th>1</th>
+          <th>2</th>
+          <th>3</th>
+          <th>4</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Desc</td>
+          <td>Trash 1</td>
+          <td>Null</td>
+          <td>Trash 2</td>
+          <td>Null</td>
+          <td>Trash 3</td>
+      </tr>
+      <tr>
+          <td>Value</td>
+          <td>1</td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td>1</td>
+      </tr>
+  </tbody>
+</table>
+<p>Explanations :</p>
+<ul>
+<li>Trash : 1 means the trashcan is full, 0 means it&rsquo;s not.</li>
+</ul>
+<p><strong>Parking scenario</strong></p>
+<table>
+  <thead>
+      <tr>
+          <th>Byte num</th>
+          <th>0</th>
+          <th>1</th>
+          <th>2</th>
+          <th>3</th>
+          <th>4</th>
+          <th>5</th>
+          <th>6</th>
+          <th>7</th>
+          <th>8</th>
+          <th>9</th>
+          <th>10</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Desc</td>
+          <td>Parking 1</td>
+          <td>Null</td>
+          <td>Parking 2</td>
+          <td>Null</td>
+          <td>Parking 3</td>
+          <td>Null</td>
+          <td>Parking 4</td>
+          <td>Null</td>
+          <td>Parking 5</td>
+          <td>Null</td>
+          <td>Parking 6</td>
+      </tr>
+      <tr>
+          <td>Value</td>
+          <td>1</td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+      </tr>
+  </tbody>
+</table>
+<p>Explanations :</p>
+<ul>
+<li>Parking : 1 means the parking spot is taken, 0 means it&rsquo;s free.</li>
+</ul>
+<p><strong>Street lamps &amp; metrics scenario</strong></p>
+<table>
+  <thead>
+      <tr>
+          <th>Byte num</th>
+          <th>0</th>
+          <th>1</th>
+          <th>2</th>
+          <th>3</th>
+          <th>4</th>
+          <th>5</th>
+          <th>6</th>
+          <th>7</th>
+          <th>8</th>
+          <th>9</th>
+          <th>10</th>
+          <th>11</th>
+          <th>12</th>
+          <th>13</th>
+          <th>14</th>
+          <th>15</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>Desc</td>
+          <td>Lights status</td>
+          <td>Null</td>
+          <td>Null</td>
+          <td>Flood status</td>
+          <td>Null</td>
+          <td>Null</td>
+          <td>Null</td>
+          <td>Null</td>
+          <td>Null</td>
+          <td>Null</td>
+          <td>Light level</td>
+          <td>Light level</td>
+          <td>Noise</td>
+          <td>Noise</td>
+          <td>Temp</td>
+          <td>Temp</td>
+      </tr>
+      <tr>
+          <td>Value</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>8</td>
+          <td>9</td>
+          <td>4</td>
+          <td>8</td>
+          <td>2</td>
+          <td>5</td>
+      </tr>
+  </tbody>
+</table>
+<p>Explanations :</p>
+<ul>
+<li>Lights status : 1 means the lights are on, 0 means off.</li>
+<li>Flood status : 1 means flood detected, 0 means no flood detected</li>
+<li>Light level : Bytes 10 and 11 are forming a numnber reflecting the percentage of light perceived by the sensor, here 89%.</li>
+<li>Noise : Bytes 12 and 13 are the current noise level reading in decibels. Here is 48 dB.</li>
+<li>Temp : Bytes 14 and 15, the current temperature reading in Celsius, here 25°C.</li>
+</ul>
+<h2 id="cloud-platform">cloud platform<a hidden class="anchor" aria-hidden="true" href="#cloud-platform">#</a></h2>
+<p>A &lsquo;cloud&rsquo; platform gathers the data sent by the model through a LoRa GW. It&rsquo;s a simple python worker that translates MQTT messages to influxDB. The latter is used by Grafana to display &rsquo;live&rsquo; and historical data:</p>
+<p><img alt="grafana" loading="lazy" src="/smartcity/grafana.jpg"></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/smartcity/">Smartcity</a></li>
+      <li><a href="/tags/embedded/">Embedded</a></li>
+      <li><a href="/tags/arduino/">Arduino</a></li>
+      <li><a href="/tags/lora/">Lora</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="/posts/shared-docker-registry-ci/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>Remote layer cache for multiple docker CI runners</span>
+  </a>
+  <a class="next" href="/posts/watchy/">
+    <span class="title">Next »</span>
+    <br>
+    <span>An E-Ink watch</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="/">k0rventen&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

@@ -1,4 +1,33 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>linux on</title><link>/tags/linux/</link><description>Recent content in linux on</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Mon, 29 Apr 2024 00:00:00 +0000</lastBuildDate><atom:link href="/tags/linux/index.xml" rel="self" type="application/rss+xml"/><item><title>How to resize an LVM ext4 partition (and also non-LVM because old VMs)</title><link>/posts/lvm-resize/</link><pubDate>Mon, 29 Apr 2024 00:00:00 +0000</pubDate><guid>/posts/lvm-resize/</guid><description>
-this thing you do every 6 months and forget</description></item><item><title>Remote layer cache for multiple docker CI runners</title><link>/posts/shared-docker-registry-ci/</link><pubDate>Mon, 19 Feb 2024 00:00:00 +0000</pubDate><guid>/posts/shared-docker-registry-ci/</guid><description>
-Improve your CI build times using a common layer caching registry</description></item><item><title>Reset a lost account password using docker</title><link>/posts/reset-password-with-docker/</link><pubDate>Wed, 09 Aug 2023 00:00:00 +0000</pubDate><guid>/posts/reset-password-with-docker/</guid><description>
-thx god I gave my account docker socket access</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Linux on k0rventen&#39;s blog</title>
+    <link>/tags/linux/</link>
+    <description>Recent content in Linux on k0rventen&#39;s blog</description>
+    <generator>Hugo -- 0.139.0</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 29 Apr 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="/tags/linux/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>How to resize an LVM ext4 partition (and also non-LVM because old VMs)</title>
+      <link>/posts/lvm-resize/</link>
+      <pubDate>Mon, 29 Apr 2024 00:00:00 +0000</pubDate>
+      <guid>/posts/lvm-resize/</guid>
+      <description>this thing you do every 6 months and forget</description>
+    </item>
+    <item>
+      <title>Remote layer cache for multiple docker CI runners</title>
+      <link>/posts/shared-docker-registry-ci/</link>
+      <pubDate>Mon, 19 Feb 2024 00:00:00 +0000</pubDate>
+      <guid>/posts/shared-docker-registry-ci/</guid>
+      <description>Improve your CI build times using a common layer caching registry</description>
+    </item>
+    <item>
+      <title>Reset a lost account password using docker</title>
+      <link>/posts/reset-password-with-docker/</link>
+      <pubDate>Wed, 09 Aug 2023 00:00:00 +0000</pubDate>
+      <guid>/posts/reset-password-with-docker/</guid>
+      <description>thx god I gave my account docker socket access</description>
+    </item>
+  </channel>
+</rss>

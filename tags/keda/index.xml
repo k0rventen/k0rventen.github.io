@@ -1,2 +1,19 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>KEDA on</title><link>/tags/keda/</link><description>Recent content in KEDA on</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="/tags/keda/index.xml" rel="self" type="application/rss+xml"/><item><title>Autoscaling using KEDA</title><link>/posts/keda-autoscaling/</link><pubDate>Mon, 16 May 2022 00:00:00 +0000</pubDate><guid>/posts/keda-autoscaling/</guid><description>
-Scale workloads based on a rabbitMQ queue's metrics</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>KEDA on k0rventen&#39;s blog</title>
+    <link>/tags/keda/</link>
+    <description>Recent content in KEDA on k0rventen&#39;s blog</description>
+    <generator>Hugo -- 0.139.0</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate>
+    <atom:link href="/tags/keda/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Autoscaling using KEDA</title>
+      <link>/posts/keda-autoscaling/</link>
+      <pubDate>Mon, 16 May 2022 00:00:00 +0000</pubDate>
+      <guid>/posts/keda-autoscaling/</guid>
+      <description>Scale workloads based on a rabbitMQ queue&amp;#39;s metrics</description>
+    </item>
+  </channel>
+</rss>

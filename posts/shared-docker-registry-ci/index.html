@@ -1,192 +1,617 @@
-<!doctype html><html lang=en><head><title>Remote layer cache for multiple docker CI runners ::
-</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="what and why At $job, we are using jenkins with a dozen or so docker runners, each running their own docker daemon. At least a few hundred builds are carried out daily on these runners, mainly producing docker images that are then pushed onto a testing/production container registry.
-But two jobs from the same repo might not be using the same CI runner (most of the time they are not). It means each docker runner might need to rebuild the first couple of layers from a given Dockerfile, despite another worker having already built the same layers a few hours/minutes ago."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/shared-docker-registry-ci/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Remote layer cache for multiple docker CI runners"><meta name=twitter:description content="Improve your CI build times using a common layer caching registry"><meta property="og:title" content="Remote layer cache for multiple docker CI runners"><meta property="og:description" content="Improve your CI build times using a common layer caching registry"><meta property="og:type" content="article"><meta property="og:url" content="/posts/shared-docker-registry-ci/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2024-02-19T00:00:00+00:00"><meta property="article:modified_time" content="2024-02-19T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a><span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Remote layer cache for multiple docker CI runners</h1><div class=post-meta><span class=post-date>2024-02-19
-</span><span class=post-read-time>— 10 min read</span></div><span class=post-tags><a href=/tags/docker/>#docker</a>&nbsp;
-<a href=/tags/linux/>#linux</a>&nbsp;
-<a href=/tags/ci/>#CI</a>&nbsp;
-<a href=/tags/cloud-init/>#cloud-init</a>&nbsp;
-<a href=/tags/buildx/>#buildx</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#what-and-why>what and why</a></li><li><a href=#how>how</a><ul><li><a href=#setup-using-multipass>setup (using multipass)</a></li><li><a href=#manual-setup>manual setup</a></li><li><a href=#building-our-first-image>building our first image</a></li><li><a href=#configuring-the-cache-registry>configuring the cache registry</a><ul><li><a href=#buildkit-config>buildkit config</a></li><li><a href=#lets-finally-use-the-registry>let&rsquo;s finally use the registry</a></li></ul></li><li><a href=#quick-maths>quick maths</a></li><li><a href=#limitations-and-caveats>limitations and caveats</a></li></ul></li></ul></nav></aside><h1 id=what-and-why>what and why</h1><p>At $job, we are using jenkins with a dozen or so docker runners, each running their own docker daemon. At least a few hundred builds are carried out daily on these runners, mainly producing docker images that are then pushed onto a testing/production container registry.</p><p>But two jobs from the same repo might not be using the same CI runner (most of the time they are not). It means each docker runner might need to rebuild the first couple of layers from a given Dockerfile, despite another worker having already built the same layers a few hours/minutes ago. That&rsquo;s wasting CPU cycles, bandwith, and it&rsquo;s also increasing the time each build is taking.</p><p>So the goal is to find a way for each worker to share its layers to the others, and for everyone to be able to use this system to pull redundant layers that might already exist.</p><h1 id=how>how</h1><p>The setup is very simple: We&rsquo;ll use a dedicated docker registry (using the <code>registry</code> image), as a centralised layer cache. Then we&rsquo;ll configure each worker to point to that registry when building an image.</p><p>Now, when a runner builds an image, it will store the intermediary layers in this shared registry, for other runners to use.
-And when another runner need to build an image with the same starting layers, he&rsquo;ll simply pull from this registry, rather than rebuilding locally the same layers.</p><p>Here is an overview of a PoC setup we&rsquo;ll deploy to test our hypothesis:</p><ul><li>vm1, our docker registry</li><li>vm2 and vm3, two &lsquo;CI runners&rsquo; (for our purpose, they will only have docker installed and we&rsquo;ll manually launch &lsquo;jobs&rsquo;)</li></ul><p>To reproduce, you can use anything that can create VMs/containers, like multipass, compose, kvm, virtualbox, distrobox, or even 3 real machines.</p><h2 id=setup-using-multipass>setup (using multipass)</h2><p>I will be using multipass, but anything that can create a network with multiple VM should do.</p><p>We&rsquo;ll leverage <code>cloud-init</code> to provision our VM, if your provider supports it, you can copy the content of the following files:</p><p><strong>registry.yaml</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#f92672>runcmd</span>:
-</span></span><span style=display:flex><span>  - <span style=color:#e6db74>&#34;curl -fsSL https://get.docker.com -o get-docker.sh&#34;</span>
-</span></span><span style=display:flex><span>  - <span style=color:#e6db74>&#34;sh get-docker.sh&#34;</span>
-</span></span><span style=display:flex><span>  - <span style=color:#e6db74>&#34;docker run -d -p 5000:5000 --name registry registry:latest&#34;</span>
-</span></span></code></pre></div><p><strong>worker.yaml</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#f92672>runcmd</span>:
-</span></span><span style=display:flex><span>  - <span style=color:#e6db74>&#34;curl -fsSL https://get.docker.com -o get-docker.sh&#34;</span>
-</span></span><span style=display:flex><span>  - <span style=color:#e6db74>&#34;sh get-docker.sh&#34;</span>
-</span></span><span style=display:flex><span>  - <span style=color:#e6db74>&#34;usermod -aG docker ubuntu&#34;</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#f92672>write_files</span>:
-</span></span><span style=display:flex><span>- <span style=color:#f92672>owner</span>: <span style=color:#ae81ff>ubuntu:ubuntu</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>path</span>: <span style=color:#ae81ff>/home/ubuntu/buildkit.toml</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>permissions</span>: <span style=color:#e6db74>&#39;0644&#39;</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>content</span>: |<span style=color:#e6db74>
-</span></span></span><span style=display:flex><span><span style=color:#e6db74>    [registry.&#34;registry:5000&#34;]
-</span></span></span><span style=display:flex><span><span style=color:#e6db74>      http = true</span>    
-</span></span></code></pre></div><p>Now, create 3 VMs using these files:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>multipass launch -n registry --cloud-init registry.yaml 22.04
-</span></span><span style=display:flex><span>multipass launch -n worker1 --cloud-init worker.yaml 22.04
-</span></span><span style=display:flex><span>multipass launch -n worker2 --cloud-init worker.yaml 22.04
-</span></span></code></pre></div><p>We can verify that the registry is actually running the container registry:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>&gt; multipass exec registry sudo docker ps
-</span></span><span style=display:flex><span>CONTAINER ID   IMAGE             COMMAND                  CREATED         STATUS         PORTS                                       NAMES
-</span></span><span style=display:flex><span>e3e83c6d6c69   registry:latest   <span style=color:#e6db74>&#34;/entrypoint.sh /etc…&#34;</span>   <span style=color:#ae81ff>2</span> minutes ago   Up <span style=color:#ae81ff>2</span> minutes   0.0.0.0:5000-&gt;5000/tcp, :::5000-&gt;5000/tcp   registry
-</span></span></code></pre></div><h2 id=manual-setup>manual setup</h2><p>If deploying manually, once you have the 3 machines setup:</p><ul><li>install docker on all of them:</li><li>start a container registry on our registry machine:<pre tabindex=0><code>docker run -d -p 5000:5000 --name registry registry:latest
-</code></pre></li><li>configure dns so that the workers can access the registry at <em>registry</em> (this is because the buildx backend for docker does not use /etc/hosts), so you might need an external DNS where you can add A records for the registry machine.</li></ul><p>That&rsquo;s it, we now have a container registry available at <code>registry:5000</code>.
-It&rsquo;s not production ready, as it&rsquo;s serving over HTTP and has no auth, but for our use-case this will suffice.</p><h2 id=building-our-first-image>building our first image</h2><p>Now let&rsquo;s create a Dockerfile that we&rsquo;ll execute on one of our worker:</p><p>(<code>multipass shell worker1</code>)</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-dockerfile data-lang=dockerfile><span style=display:flex><span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> alpine</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> apk add jq<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> sleep <span style=color:#ae81ff>20</span> <span style=color:#75715e># let&#39;s say we build some boilerplate stuff here</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> echo <span style=color:#e6db74>&#34;</span><span style=color:#66d9ef>$(</span>date<span style=color:#66d9ef>)</span><span style=color:#e6db74>&#34;</span> &gt; /date<span style=color:#960050;background-color:#1e0010>
-</span></span></span></code></pre></div><p>If we instruct docker to build it:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>worker1:~$ time docker build -t app .
-</span></span><span style=display:flex><span><span style=color:#f92672>[</span>...<span style=color:#f92672>]</span>
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; naming to docker.io/library/app
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>real    0m23.446s
-</span></span><span style=display:flex><span>user    0m0.133s
-</span></span><span style=display:flex><span>sys     0m0.021s
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Remote layer cache for multiple docker CI runners | k0rventen&#39;s blog</title>
+<meta name="keywords" content="docker, linux, CI, cloud-init, buildx">
+<meta name="description" content="Improve your CI build times using a common layer caching registry">
+<meta name="author" content="">
+<link rel="canonical" href="/posts/shared-docker-registry-ci/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.d6fcd20a4fb86efa4dfac8ec95da60244cc8871042183da1ef28e3a762ad79c8.css" integrity="sha256-1vzSCk&#43;4bvpN&#43;sjsldpgJEzIhxBCGD2h7yjjp2Ktecg=" rel="preload stylesheet" as="style">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="/posts/shared-docker-registry-ci/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/shared-docker-registry-ci/">
+  <meta property="og:site_name" content="k0rventen&#39;s blog">
+  <meta property="og:title" content="Remote layer cache for multiple docker CI runners">
+  <meta property="og:description" content="Improve your CI build times using a common layer caching registry">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-02-19T00:00:00+00:00">
+    <meta property="article:modified_time" content="2024-02-19T00:00:00+00:00">
+    <meta property="article:tag" content="Docker">
+    <meta property="article:tag" content="Linux">
+    <meta property="article:tag" content="CI">
+    <meta property="article:tag" content="Cloud-Init">
+    <meta property="article:tag" content="Buildx">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Remote layer cache for multiple docker CI runners">
+<meta name="twitter:description" content="Improve your CI build times using a common layer caching registry">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Remote layer cache for multiple docker CI runners",
+      "item": "/posts/shared-docker-registry-ci/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Remote layer cache for multiple docker CI runners",
+  "name": "Remote layer cache for multiple docker CI runners",
+  "description": "Improve your CI build times using a common layer caching registry",
+  "keywords": [
+    "docker", "linux", "CI", "cloud-init", "buildx"
+  ],
+  "articleBody": "what and why At $job, we are using jenkins with a dozen or so docker runners, each running their own docker daemon. At least a few hundred builds are carried out daily on these runners, mainly producing docker images that are then pushed onto a testing/production container registry.\nBut two jobs from the same repo might not be using the same CI runner (most of the time they are not). It means each docker runner might need to rebuild the first couple of layers from a given Dockerfile, despite another worker having already built the same layers a few hours/minutes ago. That’s wasting CPU cycles, bandwith, and it’s also increasing the time each build is taking.\nSo the goal is to find a way for each worker to share its layers to the others, and for everyone to be able to use this system to pull redundant layers that might already exist.\nhow The setup is very simple: We’ll use a dedicated docker registry (using the registry image), as a centralised layer cache. Then we’ll configure each worker to point to that registry when building an image.\nNow, when a runner builds an image, it will store the intermediary layers in this shared registry, for other runners to use. And when another runner need to build an image with the same starting layers, he’ll simply pull from this registry, rather than rebuilding locally the same layers.\nHere is an overview of a PoC setup we’ll deploy to test our hypothesis:\nvm1, our docker registry vm2 and vm3, two ‘CI runners’ (for our purpose, they will only have docker installed and we’ll manually launch ‘jobs’) To reproduce, you can use anything that can create VMs/containers, like multipass, compose, kvm, virtualbox, distrobox, or even 3 real machines.\nsetup (using multipass) I will be using multipass, but anything that can create a network with multiple VM should do.\nWe’ll leverage cloud-init to provision our VM, if your provider supports it, you can copy the content of the following files:\nregistry.yaml\nruncmd: - \"curl -fsSL https://get.docker.com -o get-docker.sh\" - \"sh get-docker.sh\" - \"docker run -d -p 5000:5000 --name registry registry:latest\" worker.yaml\nruncmd: - \"curl -fsSL https://get.docker.com -o get-docker.sh\" - \"sh get-docker.sh\" - \"usermod -aG docker ubuntu\" write_files: - owner: ubuntu:ubuntu path: /home/ubuntu/buildkit.toml permissions: '0644' content: | [registry.\"registry:5000\"] http = true Now, create 3 VMs using these files:\nmultipass launch -n registry --cloud-init registry.yaml 22.04 multipass launch -n worker1 --cloud-init worker.yaml 22.04 multipass launch -n worker2 --cloud-init worker.yaml 22.04 We can verify that the registry is actually running the container registry:\n\u003e multipass exec registry sudo docker ps CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES e3e83c6d6c69 registry:latest \"/entrypoint.sh /etc…\" 2 minutes ago Up 2 minutes 0.0.0.0:5000-\u003e5000/tcp, :::5000-\u003e5000/tcp registry manual setup If deploying manually, once you have the 3 machines setup:\ninstall docker on all of them: start a container registry on our registry machine: docker run -d -p 5000:5000 --name registry registry:latest configure dns so that the workers can access the registry at registry (this is because the buildx backend for docker does not use /etc/hosts), so you might need an external DNS where you can add A records for the registry machine. That’s it, we now have a container registry available at registry:5000. It’s not production ready, as it’s serving over HTTP and has no auth, but for our use-case this will suffice.\nbuilding our first image Now let’s create a Dockerfile that we’ll execute on one of our worker:\n(multipass shell worker1)\nFROM alpine RUN apk add jq RUN sleep 20 # let's say we build some boilerplate stuff here RUN echo \"$(date)\" \u003e /date If we instruct docker to build it:\nworker1:~$ time docker build -t app . [...] =\u003e =\u003e naming to docker.io/library/app real 0m23.446s user 0m0.133s sys 0m0.021s ok, so 23s to build it. Now let’s say our second worker has to build the same image (do not forget to copy the Dockerfile on worker2). Running that on our worker2 should take around the same time: (multipass shell worker2):\nworker2:~$ time docker build -t app . [...] =\u003e =\u003e naming to docker.io/library/app real 0m23.449s user 0m0.126s sys 0m0.047s But if we run it again on worker1:\nworker1:~$ time docker build -t app . [...] =\u003e CACHED [2/4] RUN apk add jq =\u003e CACHED [3/4] RUN sleep 20 # let's say we build some boilerplate stuff here =\u003e CACHED [4/4] RUN echo \"$(date)\" \u003e /date =\u003e exporting to image =\u003e =\u003e exporting layers =\u003e =\u003e writing image sha256:d902f59380db83b19d90aff37674566688db1895f97c418f7f0a561a368b54d3 =\u003e =\u003e naming to docker.io/library/app real 0m0.889s user 0m0.075s sys 0m0.024s Note the CACHED in some of the log lines on our worker1. That’s because the layers for the first 3 instructions of the Dockerfile are already present in our first worker. He’s using them rather than building them as he did the first time around.\nconfiguring the cache registry So now, let’s make use of our registry and share these layers between runners. So when we update the Dockerfile, runners who haven’t yet built this image can take advantage of the registry.\nFor that, we’ll use the following arguments to our docker command:\nbuildx: only the buildx backend supports the use of external caching mecanisms as the one we are using here is the buildx documentation --cache-from type=registry,ref=registry.local/image: tell docker to cache the layer we build to this registry --cache-to type=registry,ref=registry.local/image: tell docker to check this registry before building a layler --push or --load: either push the final image to the registry, or load it to the host’s docker engine. buildkit config Due to our unsecure setup, we’ll have to tell buildx that our registry is using http. On both workers, create a file buildkit.toml:\n[registry.\"registry.local\"] http = true Then create our builkit with our config:\n\u003e docker buildx create --config=buildkit.toml --use quirky_panini # that's cute let’s finally use the registry We’ll change the base image of our Dockerfile, so we know that the first time we build it, we can’t use any of the cache we have already. Let’s change the base image from alpine to python:\nFROM python:alpine Now let’s try to build our image with our shared registry:\nOn worker1:\n\u003e docker buildx build -t registry:5000/image \\ --cache-from type=registry,ref=registry:5000/image \\ --cache-to type=registry,ref=registry:5000/image --load . [+] Building 29.9s (11/11) FINISHED =\u003e [internal] booting buildkit =\u003e =\u003e pulling image moby/buildkit:buildx-stable-1 =\u003e =\u003e creating container buildx_buildkit_amazing_babbage0 =\u003e [internal] load build definition from Dockerfile =\u003e =\u003e transferring dockerfile: 154B =\u003e [internal] load metadata for docker.io/library/alpine:latest =\u003e [internal] load .dockerignore =\u003e =\u003e transferring context: 2B =\u003e ERROR importing cache manifest from registry:5000/image =\u003e [1/4] FROM docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7ccaa =\u003e =\u003e resolve docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7ccaa =\u003e =\u003e sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8 3.41MB / 3.41MB =\u003e =\u003e extracting sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8 =\u003e [2/4] RUN apk add jq =\u003e [3/4] RUN sleep 20 # let's say we build some boilerplate stuff here =\u003e [4/4] RUN echo \"$(date)\" \u003e /date =\u003e exporting to image =\u003e =\u003e exporting layers =\u003e =\u003e exporting manifest sha256:c13b6d9ce9d3d64e17f3443ae9082cf1b9c6e9e07922188900bc9942175fb073 =\u003e =\u003e exporting config sha256:0da8809d7104cf20453a6b2d2276b089f40bfb555e0254db6fa40b0f39aa07ae =\u003e =\u003e exporting attestation manifest sha256:113dfd6d03ed8c503d0b91ef9c69ec6f9c0fb92b9d656062ec3e79ceb9d0a =\u003e =\u003e exporting manifest list sha256:35ba11d8517d1452341090bf6884afd35b595389cf6559988662d76f7e62851d =\u003e =\u003e pushing layers =\u003e =\u003e pushing manifest for registry:5000/image:latest@sha256:35ba11d8517d1452341090bf6884afd35b595389cf65 =\u003e exporting cache to registry =\u003e =\u003e preparing build cache for export =\u003e =\u003e writing layer sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8 =\u003e =\u003e writing layer sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 =\u003e =\u003e writing layer sha256:97a760744e8ba94a04280f62d469902bcb58b128da9f6501db9822ee8ded0a63 =\u003e =\u003e writing layer sha256:cc84016181cd34ccdc572a0a034e46fe491d3a01967328d7370bab371a17c868 =\u003e =\u003e writing config sha256:60802e2ae4cac776269d496cd99bf016a2fd51220214c8736e63914a0eca9ca8 =\u003e =\u003e writing cache manifest sha256:610b85677a133f2ea67eecbbc3ba704e0d3eddf65b48ec0c4293b89d28a3a42b ------ \u003e importing cache manifest from registry:5000/image: real 0m25.925s user 0m0.345s sys 0m0.136s Again, around 25s (there are a few seconds for the buildkit container to boot up). But now, let’s do the same thing on the second worker. We’ll prune it beforehand, so it has no local cache for what we’ll be building:\n\u003e docker system prune -a -f [...] Total reclaimed space: 46.23MB \u003e docker buildx create --config=buildkit.toml --use vibrant_cohen \u003e time docker buildx build -t registry:5000/image \\ --cache-from type=registry,ref=registry:5000/image \\ --cache-to type=registry,ref=registry:5000/image --load . [+] Building 2.4s (11/11) FINISHED docker-container:pensive_taussig =\u003e [internal] load build definition from Dockerfile =\u003e =\u003e transferring dockerfile: 161B =\u003e [internal] load metadata for docker.io/library/python:alpine =\u003e [internal] load .dockerignore =\u003e =\u003e transferring context: 2B =\u003e importing cache manifest from registry:5000/image =\u003e =\u003e inferred cache manifest type: application/vnd.oci.image.index.v1+json =\u003e [1/4] FROM docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7cca =\u003e =\u003e resolve docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7cca =\u003e CACHED [2/4] RUN apk add jq =\u003e CACHED [3/4] RUN sleep 20 # let's say we build some boilerplate stuff here =\u003e CACHED [4/4] RUN echo \"$(date)\" \u003e /date2 =\u003e exporting to docker image format =\u003e =\u003e exporting layers =\u003e =\u003e exporting manifest sha256:4532df521ca93c2519f9ff8338f30e13fba723332447bcd3e003dd47630142a2 =\u003e =\u003e exporting config sha256:9debadcc86872631a1a0b7eafd2972d6beca3456f0b043eb80b52d2681a0d548 =\u003e =\u003e sending tarball =\u003e importing to docker =\u003e =\u003e loading layer d4fc045c9e3a 65.54kB / 3.41MB =\u003e =\u003e loading layer 678cac8b069e 32.77kB / 622.15kB =\u003e =\u003e loading layer 0c9bfb14c909 131.07kB / 11.77MB =\u003e =\u003e loading layer d2968c01735e 242B / 242B =\u003e =\u003e loading layer 5305019f4685 32.77kB / 2.70MB =\u003e =\u003e loading layer 37d2dfc1707b 32.77kB / 2.71MB =\u003e =\u003e loading layer 5f70bf18a086 32B / 32B =\u003e =\u003e loading layer 5a36026cdcc3 126B / 126B =\u003e exporting cache to registry =\u003e =\u003e preparing build cache for export =\u003e =\u003e writing layer sha256:270999341ddcf70feedda4bff6d081483f1ad384e5aa13f268f828ed469f5402 =\u003e =\u003e writing layer sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8 =\u003e =\u003e writing layer sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 =\u003e =\u003e writing layer sha256:4fc96b5c1ba465ba27fb55d4766ade8624de4082ac1530b3293ac735ab3ead50 =\u003e =\u003e writing layer sha256:a8fd6f3f484fdfccf33965ca0f8807e5078a619803cf638d82bc4a405e91de04 =\u003e =\u003e writing layer sha256:caa4e319395ae52ea041b5a6cca32833cecc2b192a18cef42e77a6e0446c9f4a =\u003e =\u003e writing layer sha256:dca80dc46cecdd1a97787a1dd6f74263b9d2f7b0dd3e2e15c109f5e34848c932 =\u003e =\u003e writing layer sha256:fe9e15b6315c34de5c802bdbd343e3ec69bdc4ab870783fc1b9552daaef25e77 =\u003e =\u003e writing config sha256:fccd66ca6f5e29c42a8444b3f74df1ecb8c94114429a851e093de718ba55decc =\u003e =\u003e writing cache manifest sha256:b76d6f554cffd020b6b14656e332527dfb19ab01376d0473cc12a5580a2d9c45 real 0m2.625s user 0m0.255s sys 0m0.041s That was super fast, because for most of the layers, there was a cache hit in the registry. That means whatever layer has been built by another worker, our worker2 can now access it and use it without building it !\nNow if we tweak the Dockerfile a bit, and rerun the command, we might have some cache misses on the new layers, but it’s still an improvement !\nWhenever a runner will need these first few layers (eg building dependencies, compiling some boilerplate stuff, etc).. he will be able to pull them from this cache, and only work on what matters (compiling code that has changed, copying over build artifacts..).\nquick maths In this real world very production grade example, we’ve reduced the build time from ~20s to ~2s. No matter what the rest of the Dockerfile looks like, it’s 18 seconds shaved off the total runtime for this particular job. Let’s say these boilerplate layers are used in a repository with 20 commits a day, 5 days a week, we could shave off (18s per run) * (20 runs per day) * 5 days = 30 minutes of CI runtime weekly. Multiply that by the number of repos * weeks worked in a year, and this number can quickly tally up into days !\nlimitations and caveats This setup isn’t perfect, and there are a few drawbacks/things to consider when thinking about deploying such a system:\nFirst, it’s needless to say, the simple registry:latest container depicted in this setup isn’t prepared for much more, as there is no persistent storage, and plain HTTP is used. A more robust container registry might be needed (think Harbor)\nSecond, because this is using buildx, you have to choose between loading the resulting image (eg for testing), or pushing it to the registry, as using both --pull and --load isn’t allowed. That might be fine for a (git pull/ docker build/docker push) type of CI, but if you need to both push and use the image, you’re out of luck, and you’ll surely need to run two commands. Third, and maybe the the main caveat about this setup: cache invalidation:\none of your worker pulls an image, URL or ressource, creates a layer out of it and pushes it to the cache you obviously want to use this layer as much as possible, reducing bandwidth usage, compute time, etc the external ressource gets updated (eg a new commit, updated base image..) But your local instruction for fetching the resource hasn’t changed (it’s still RUN git clone) you are now out of sync with the resource, building outdated layers. And there lies the root issue, of when should we invalidate a given layer on the registry. Doing it too often kinda defeats the purpose of the shared registry, on the other hand doing it at sparse intervals mean higher chance of using outdated layers.\nThere is no silver bullet for this particular problem, it depends solely on the setup/goal.\nFinally, depending on how many workers/repos/build are used, this can create a huge number of layers in the registry. And all this cache can accumulate quickly, using quite a lot of disk space over time.\nHappy caching !\n",
+  "wordCount" : "2083",
+  "inLanguage": "en",
+  "datePublished": "2024-02-19T00:00:00Z",
+  "dateModified": "2024-02-19T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/shared-docker-registry-ci/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "k0rventen's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="/" accesskey="h" title="&gt; k0rventen: ~ (Alt + H)">&gt; k0rventen: ~</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/links" title="links">
+                    <span>links</span>
+                </a>
+            </li>
+            <li>
+                <a href="/posts" title="posts">
+                    <span>posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="/search" title="search (Alt &#43; /)" accesskey=/>
+                    <span>search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="/">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Remote layer cache for multiple docker CI runners
+    </h1>
+    <div class="post-description">
+      Improve your CI build times using a common layer caching registry
+    </div>
+    <div class="post-meta"><span title='2024-02-19 00:00:00 +0000 UTC'>February 19, 2024</span>&nbsp;·&nbsp;10 min&nbsp;·&nbsp;2083 words
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#setup-using-multipass">setup (using multipass)</a></li>
+    <li><a href="#manual-setup">manual setup</a></li>
+    <li><a href="#building-our-first-image">building our first image</a></li>
+    <li><a href="#configuring-the-cache-registry">configuring the cache registry</a>
+      <ul>
+        <li><a href="#buildkit-config">buildkit config</a></li>
+        <li><a href="#lets-finally-use-the-registry">let&rsquo;s finally use the registry</a></li>
+      </ul>
+    </li>
+    <li><a href="#quick-maths">quick maths</a></li>
+    <li><a href="#limitations-and-caveats">limitations and caveats</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="what-and-why">what and why<a hidden class="anchor" aria-hidden="true" href="#what-and-why">#</a></h1>
+<p>At $job, we are using jenkins with a dozen or so docker runners, each running their own docker daemon. At least a few hundred builds are carried out daily on these runners, mainly producing docker images that are then pushed onto a testing/production container registry.</p>
+<p>But two jobs from the same repo might not be using the same CI runner (most of the time they are not). It means each docker runner might need to rebuild the first couple of layers from a given Dockerfile, despite another worker having already built the same layers a few hours/minutes ago. That&rsquo;s wasting CPU cycles, bandwith, and it&rsquo;s also increasing the time each build is taking.</p>
+<p>So the goal is to find a way for each worker to share its layers to the others, and for everyone to be able to use this system to pull redundant layers that might already exist.</p>
+<h1 id="how">how<a hidden class="anchor" aria-hidden="true" href="#how">#</a></h1>
+<p>The setup is very simple: We&rsquo;ll use a dedicated docker registry (using the <code>registry</code> image), as a centralised layer cache. Then we&rsquo;ll configure each worker to point to that registry when building an image.</p>
+<p>Now, when a runner builds an image, it will store the intermediary layers in this shared registry, for other runners to use.
+And when another runner need to build an image with the same starting layers, he&rsquo;ll simply pull from this registry, rather than rebuilding locally the same layers.</p>
+<p>Here is an overview of a PoC setup we&rsquo;ll deploy to test our hypothesis:</p>
+<ul>
+<li>vm1, our docker registry</li>
+<li>vm2 and vm3, two &lsquo;CI runners&rsquo; (for our purpose, they will only have docker installed and we&rsquo;ll manually launch &lsquo;jobs&rsquo;)</li>
+</ul>
+<p>To reproduce, you can use anything that can create VMs/containers, like multipass, compose, kvm, virtualbox, distrobox, or even 3 real machines.</p>
+<h2 id="setup-using-multipass">setup (using multipass)<a hidden class="anchor" aria-hidden="true" href="#setup-using-multipass">#</a></h2>
+<p>I will be using multipass, but anything that can create a network with multiple VM should do.</p>
+<p>We&rsquo;ll leverage <code>cloud-init</code> to provision our VM, if your provider supports it, you can copy the content of the following files:</p>
+<p><strong>registry.yaml</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">runcmd</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="s2">&#34;curl -fsSL https://get.docker.com -o get-docker.sh&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="s2">&#34;sh get-docker.sh&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="s2">&#34;docker run -d -p 5000:5000 --name registry registry:latest&#34;</span><span class="w">
+</span></span></span></code></pre></div><p><strong>worker.yaml</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">runcmd</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="s2">&#34;curl -fsSL https://get.docker.com -o get-docker.sh&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="s2">&#34;sh get-docker.sh&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="s2">&#34;usermod -aG docker ubuntu&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">write_files</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span>- <span class="nt">owner</span><span class="p">:</span><span class="w"> </span><span class="l">ubuntu:ubuntu</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">/home/ubuntu/buildkit.toml</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">permissions</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;0644&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">content</span><span class="p">:</span><span class="w"> </span><span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    [registry.&#34;registry:5000&#34;]
+</span></span></span><span class="line"><span class="cl"><span class="sd">      http = true</span><span class="w">    
+</span></span></span></code></pre></div><p>Now, create 3 VMs using these files:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">multipass launch -n registry --cloud-init registry.yaml 22.04
+</span></span><span class="line"><span class="cl">multipass launch -n worker1 --cloud-init worker.yaml 22.04
+</span></span><span class="line"><span class="cl">multipass launch -n worker2 --cloud-init worker.yaml 22.04
+</span></span></code></pre></div><p>We can verify that the registry is actually running the container registry:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">&gt; multipass <span class="nb">exec</span> registry sudo docker ps
+</span></span><span class="line"><span class="cl">CONTAINER ID   IMAGE             COMMAND                  CREATED         STATUS         PORTS                                       NAMES
+</span></span><span class="line"><span class="cl">e3e83c6d6c69   registry:latest   <span class="s2">&#34;/entrypoint.sh /etc…&#34;</span>   <span class="m">2</span> minutes ago   Up <span class="m">2</span> minutes   0.0.0.0:5000-&gt;5000/tcp, :::5000-&gt;5000/tcp   registry
+</span></span></code></pre></div><h2 id="manual-setup">manual setup<a hidden class="anchor" aria-hidden="true" href="#manual-setup">#</a></h2>
+<p>If deploying manually, once you have the 3 machines setup:</p>
+<ul>
+<li>install docker on all of them:</li>
+<li>start a container registry on our registry machine:
+<pre tabindex="0"><code>docker run -d -p 5000:5000 --name registry registry:latest
+</code></pre></li>
+<li>configure dns so that the workers can access the registry at <em>registry</em> (this is because the buildx backend for docker does not use /etc/hosts), so you might need an external DNS where you can add A records for the registry machine.</li>
+</ul>
+<p>That&rsquo;s it, we now have a container registry available at <code>registry:5000</code>.
+It&rsquo;s not production ready, as it&rsquo;s serving over HTTP and has no auth, but for our use-case this will suffice.</p>
+<h2 id="building-our-first-image">building our first image<a hidden class="anchor" aria-hidden="true" href="#building-our-first-image">#</a></h2>
+<p>Now let&rsquo;s create a Dockerfile that we&rsquo;ll execute on one of our worker:</p>
+<p>(<code>multipass shell worker1</code>)</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> alpine</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> apk add jq<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> sleep <span class="m">20</span> <span class="c1"># let&#39;s say we build some boilerplate stuff here</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> <span class="nb">echo</span> <span class="s2">&#34;</span><span class="k">$(</span>date<span class="k">)</span><span class="s2">&#34;</span> &gt; /date<span class="err">
+</span></span></span></code></pre></div><p>If we instruct docker to build it:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">worker1:~$ <span class="nb">time</span> docker build -t app .
+</span></span><span class="line"><span class="cl"><span class="o">[</span>...<span class="o">]</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; naming to docker.io/library/app
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real    0m23.446s
+</span></span><span class="line"><span class="cl">user    0m0.133s
+</span></span><span class="line"><span class="cl">sys     0m0.021s
 </span></span></code></pre></div><p>ok, so 23s to build it.
 Now let&rsquo;s say our second worker has to build the same image (do not forget to copy the Dockerfile on worker2).
 Running that on our <em>worker2</em> should take around the same time:
-(<code>multipass shell worker2</code>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>worker2:~$ time docker build -t app .
-</span></span><span style=display:flex><span><span style=color:#f92672>[</span>...<span style=color:#f92672>]</span>
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; naming to docker.io/library/app
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>real    0m23.449s
-</span></span><span style=display:flex><span>user    0m0.126s
-</span></span><span style=display:flex><span>sys     0m0.047s
-</span></span></code></pre></div><p>But if we run it again on worker1:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>worker1:~$ time docker build -t app .
-</span></span><span style=display:flex><span><span style=color:#f92672>[</span>...<span style=color:#f92672>]</span>
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; CACHED <span style=color:#f92672>[</span>2/4<span style=color:#f92672>]</span> RUN apk add jq
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; CACHED <span style=color:#f92672>[</span>3/4<span style=color:#f92672>]</span> RUN sleep <span style=color:#ae81ff>20</span> <span style=color:#75715e># let&#39;s say we build some boilerplate stuff here</span>
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; CACHED <span style=color:#f92672>[</span>4/4<span style=color:#f92672>]</span> RUN echo <span style=color:#e6db74>&#34;</span><span style=color:#66d9ef>$(</span>date<span style=color:#66d9ef>)</span><span style=color:#e6db74>&#34;</span> &gt; /date
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; exporting to image
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting layers
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing image sha256:d902f59380db83b19d90aff37674566688db1895f97c418f7f0a561a368b54d3
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; naming to docker.io/library/app
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>real    0m0.889s
-</span></span><span style=display:flex><span>user    0m0.075s
-</span></span><span style=display:flex><span>sys     0m0.024s
-</span></span></code></pre></div><p>Note the <strong>CACHED</strong> in some of the log lines on our worker1. That&rsquo;s because the layers for the first 3 instructions of the Dockerfile are already present in our first worker. He&rsquo;s using them rather than building them as he did the first time around.</p><h2 id=configuring-the-cache-registry>configuring the cache registry</h2><p>So now, let&rsquo;s make use of our registry and share these layers between runners. So when we update the Dockerfile, runners who haven&rsquo;t yet built this image can take advantage of the registry.</p><p>For that, we&rsquo;ll use the following arguments to our docker command:</p><ul><li><code>buildx</code>: only the buildx backend supports the use of external caching mecanisms as the one we are using
-here is the <a href=https://docs.docker.com/reference/cli/docker/buildx/build/>buildx documentation</a></li><li><code>--cache-from type=registry,ref=registry.local/image</code>: tell docker to cache the layer we build to this registry</li><li><code>--cache-to type=registry,ref=registry.local/image</code>: tell docker to check this registry before building a layler</li><li><code>--push</code> or <code>--load</code>: either push the final image to the registry, or load it to the host&rsquo;s docker engine.</li></ul><h3 id=buildkit-config>buildkit config</h3><p>Due to our unsecure setup, we&rsquo;ll have to tell buildx that our registry is using http. On both workers, create a file <code>buildkit.toml</code>:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-toml data-lang=toml><span style=display:flex><span>[<span style=color:#a6e22e>registry</span>.<span style=color:#e6db74>&#34;registry.local&#34;</span>]
-</span></span><span style=display:flex><span>  <span style=color:#a6e22e>http</span> = <span style=color:#66d9ef>true</span>
-</span></span></code></pre></div><p>Then create our builkit with our config:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>&gt; docker buildx create --config<span style=color:#f92672>=</span>buildkit.toml  --use
-</span></span><span style=display:flex><span>quirky_panini <span style=color:#75715e># that&#39;s cute</span>
-</span></span></code></pre></div><h3 id=lets-finally-use-the-registry>let&rsquo;s finally use the registry</h3><p>We&rsquo;ll change the base image of our Dockerfile, so we know that the first time we build it, we can&rsquo;t use any of the cache we have already.
-Let&rsquo;s change the base image from alpine to python:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-Dockerfile data-lang=Dockerfile><span style=display:flex><span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> python:alpine</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span></code></pre></div><p>Now let&rsquo;s try to build our image with our shared registry:</p><p>On worker1:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>&gt; docker buildx build -t registry:5000/image <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>  --cache-from type<span style=color:#f92672>=</span>registry,ref<span style=color:#f92672>=</span>registry:5000/image <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>  --cache-to type<span style=color:#f92672>=</span>registry,ref<span style=color:#f92672>=</span>registry:5000/image --load .
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Building 29.9s <span style=color:#f92672>(</span>11/11<span style=color:#f92672>)</span> FINISHED
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>internal<span style=color:#f92672>]</span> booting buildkit
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; pulling image moby/buildkit:buildx-stable-1
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; creating container buildx_buildkit_amazing_babbage0
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>internal<span style=color:#f92672>]</span> load build definition from Dockerfile
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; transferring dockerfile: 154B
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>internal<span style=color:#f92672>]</span> load metadata <span style=color:#66d9ef>for</span> docker.io/library/alpine:latest
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>internal<span style=color:#f92672>]</span> load .dockerignore
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; transferring context: 2B
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; ERROR importing cache manifest from registry:5000/image
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>1/4<span style=color:#f92672>]</span> FROM docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7ccaa
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; resolve docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7ccaa
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8 3.41MB / 3.41MB
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; extracting sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>2/4<span style=color:#f92672>]</span> RUN apk add jq
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>3/4<span style=color:#f92672>]</span> RUN sleep <span style=color:#ae81ff>20</span> <span style=color:#75715e># let&#39;s say we build some boilerplate stuff here</span>
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>4/4<span style=color:#f92672>]</span> RUN echo <span style=color:#e6db74>&#34;</span><span style=color:#66d9ef>$(</span>date<span style=color:#66d9ef>)</span><span style=color:#e6db74>&#34;</span> &gt; /date
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; exporting to image
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting layers
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting manifest sha256:c13b6d9ce9d3d64e17f3443ae9082cf1b9c6e9e07922188900bc9942175fb073
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting config sha256:0da8809d7104cf20453a6b2d2276b089f40bfb555e0254db6fa40b0f39aa07ae
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting attestation manifest sha256:113dfd6d03ed8c503d0b91ef9c69ec6f9c0fb92b9d656062ec3e79ceb9d0a
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting manifest list sha256:35ba11d8517d1452341090bf6884afd35b595389cf6559988662d76f7e62851d
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; pushing layers
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; pushing manifest <span style=color:#66d9ef>for</span> registry:5000/image:latest@sha256:35ba11d8517d1452341090bf6884afd35b595389cf65
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; exporting cache to registry
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; preparing build cache <span style=color:#66d9ef>for</span> export
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:97a760744e8ba94a04280f62d469902bcb58b128da9f6501db9822ee8ded0a63
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:cc84016181cd34ccdc572a0a034e46fe491d3a01967328d7370bab371a17c868
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing config sha256:60802e2ae4cac776269d496cd99bf016a2fd51220214c8736e63914a0eca9ca8
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing cache manifest sha256:610b85677a133f2ea67eecbbc3ba704e0d3eddf65b48ec0c4293b89d28a3a42b
-</span></span><span style=display:flex><span>------
-</span></span><span style=display:flex><span> &gt; importing cache manifest from registry:5000/image:
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>real    0m25.925s
-</span></span><span style=display:flex><span>user    0m0.345s
-</span></span><span style=display:flex><span>sys     0m0.136s
+(<code>multipass shell worker2</code>):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">worker2:~$ <span class="nb">time</span> docker build -t app .
+</span></span><span class="line"><span class="cl"><span class="o">[</span>...<span class="o">]</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; naming to docker.io/library/app
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real    0m23.449s
+</span></span><span class="line"><span class="cl">user    0m0.126s
+</span></span><span class="line"><span class="cl">sys     0m0.047s
+</span></span></code></pre></div><p>But if we run it again on worker1:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">worker1:~$ <span class="nb">time</span> docker build -t app .
+</span></span><span class="line"><span class="cl"><span class="o">[</span>...<span class="o">]</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; CACHED <span class="o">[</span>2/4<span class="o">]</span> RUN apk add <span class="nv">jq</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; CACHED <span class="o">[</span>3/4<span class="o">]</span> RUN sleep <span class="m">20</span> <span class="c1"># let&#39;s say we build some boilerplate stuff here</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; CACHED <span class="o">[</span>4/4<span class="o">]</span> RUN <span class="nb">echo</span> <span class="s2">&#34;</span><span class="k">$(</span>date<span class="k">)</span><span class="s2">&#34;</span> &gt; /date
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; exporting to <span class="nv">image</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting <span class="nv">layers</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing image sha256:d902f59380db83b19d90aff37674566688db1895f97c418f7f0a561a368b54d3
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; naming to docker.io/library/app
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real    0m0.889s
+</span></span><span class="line"><span class="cl">user    0m0.075s
+</span></span><span class="line"><span class="cl">sys     0m0.024s
+</span></span></code></pre></div><p>Note the <strong>CACHED</strong> in some of the log lines on our worker1. That&rsquo;s because the layers for the first 3 instructions of the Dockerfile are already present in our first worker. He&rsquo;s using them rather than building them as he did the first time around.</p>
+<h2 id="configuring-the-cache-registry">configuring the cache registry<a hidden class="anchor" aria-hidden="true" href="#configuring-the-cache-registry">#</a></h2>
+<p>So now, let&rsquo;s make use of our registry and share these layers between runners. So when we update the Dockerfile, runners who haven&rsquo;t yet built this image can take advantage of the registry.</p>
+<p>For that, we&rsquo;ll use the following arguments to our docker command:</p>
+<ul>
+<li><code>buildx</code>: only the buildx backend supports the use of external caching mecanisms as the one we are using
+here is the <a href="https://docs.docker.com/reference/cli/docker/buildx/build/">buildx documentation</a></li>
+<li><code>--cache-from type=registry,ref=registry.local/image</code>: tell docker to cache the layer we build to this registry</li>
+<li><code>--cache-to type=registry,ref=registry.local/image</code>: tell docker to check this registry before building a layler</li>
+<li><code>--push</code> or <code>--load</code>: either push the final image to the registry, or load it to the host&rsquo;s docker engine.</li>
+</ul>
+<h3 id="buildkit-config">buildkit config<a hidden class="anchor" aria-hidden="true" href="#buildkit-config">#</a></h3>
+<p>Due to our unsecure setup, we&rsquo;ll have to tell buildx that our registry is using http. On both workers, create a file <code>buildkit.toml</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-toml" data-lang="toml"><span class="line"><span class="cl"><span class="p">[</span><span class="nx">registry</span><span class="p">.</span><span class="s2">&#34;registry.local&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">http</span> <span class="p">=</span> <span class="kc">true</span>
+</span></span></code></pre></div><p>Then create our builkit  with our config:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">&gt; docker buildx create --config<span class="o">=</span>buildkit.toml  --use
+</span></span><span class="line"><span class="cl">quirky_panini <span class="c1"># that&#39;s cute</span>
+</span></span></code></pre></div><h3 id="lets-finally-use-the-registry">let&rsquo;s finally use the registry<a hidden class="anchor" aria-hidden="true" href="#lets-finally-use-the-registry">#</a></h3>
+<p>We&rsquo;ll change the base image of our Dockerfile, so we know that the first time we build it, we can&rsquo;t use any of the cache we have already.
+Let&rsquo;s change the base image from alpine to python:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-Dockerfile" data-lang="Dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> python:alpine</span><span class="err">
+</span></span></span></code></pre></div><p>Now let&rsquo;s try to build our image with our shared registry:</p>
+<p>On worker1:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">&gt; docker buildx build -t registry:5000/image <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --cache-from <span class="nv">type</span><span class="o">=</span>registry,ref<span class="o">=</span>registry:5000/image <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --cache-to <span class="nv">type</span><span class="o">=</span>registry,ref<span class="o">=</span>registry:5000/image --load .
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> Building 29.9s <span class="o">(</span>11/11<span class="o">)</span> <span class="nv">FINISHED</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>internal<span class="o">]</span> booting <span class="nv">buildkit</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; pulling image moby/buildkit:buildx-stable-1
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; creating container <span class="nv">buildx_buildkit_amazing_babbage0</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>internal<span class="o">]</span> load build definition from <span class="nv">Dockerfile</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; transferring dockerfile: <span class="nv">154B</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>internal<span class="o">]</span> load metadata <span class="k">for</span> docker.io/library/alpine:latest
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>internal<span class="o">]</span> load .dockerignore
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; transferring context: <span class="nv">2B</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; ERROR importing cache manifest from registry:5000/image
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>1/4<span class="o">]</span> FROM docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7ccaa
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; resolve docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7ccaa
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8 3.41MB / 3.41MB
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; extracting sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>2/4<span class="o">]</span> RUN apk add <span class="nv">jq</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>3/4<span class="o">]</span> RUN sleep <span class="m">20</span> <span class="c1"># let&#39;s say we build some boilerplate stuff here</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>4/4<span class="o">]</span> RUN <span class="nb">echo</span> <span class="s2">&#34;</span><span class="k">$(</span>date<span class="k">)</span><span class="s2">&#34;</span> &gt; /date
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; exporting to <span class="nv">image</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting <span class="nv">layers</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting manifest sha256:c13b6d9ce9d3d64e17f3443ae9082cf1b9c6e9e07922188900bc9942175fb073
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting config sha256:0da8809d7104cf20453a6b2d2276b089f40bfb555e0254db6fa40b0f39aa07ae
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting attestation manifest sha256:113dfd6d03ed8c503d0b91ef9c69ec6f9c0fb92b9d656062ec3e79ceb9d0a
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting manifest list sha256:35ba11d8517d1452341090bf6884afd35b595389cf6559988662d76f7e62851d
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; pushing <span class="nv">layers</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; pushing manifest <span class="k">for</span> registry:5000/image:latest@sha256:35ba11d8517d1452341090bf6884afd35b595389cf65
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; exporting cache to <span class="nv">registry</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; preparing build cache <span class="k">for</span> <span class="nb">export</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:97a760744e8ba94a04280f62d469902bcb58b128da9f6501db9822ee8ded0a63
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:cc84016181cd34ccdc572a0a034e46fe491d3a01967328d7370bab371a17c868
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing config sha256:60802e2ae4cac776269d496cd99bf016a2fd51220214c8736e63914a0eca9ca8
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing cache manifest sha256:610b85677a133f2ea67eecbbc3ba704e0d3eddf65b48ec0c4293b89d28a3a42b
+</span></span><span class="line"><span class="cl">------
+</span></span><span class="line"><span class="cl"> &gt; importing cache manifest from registry:5000/image:
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real    0m25.925s
+</span></span><span class="line"><span class="cl">user    0m0.345s
+</span></span><span class="line"><span class="cl">sys     0m0.136s
 </span></span></code></pre></div><p>Again, around 25s (there are a few seconds for the buildkit container to boot up).
-But now, let&rsquo;s do the same thing on the second worker. We&rsquo;ll prune it beforehand, so it has no local cache for what we&rsquo;ll be building:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>&gt; docker system prune -a -f
-</span></span><span style=display:flex><span><span style=color:#f92672>[</span>...<span style=color:#f92672>]</span>
-</span></span><span style=display:flex><span>Total reclaimed space: 46.23MB
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>&gt; docker buildx create --config<span style=color:#f92672>=</span>buildkit.toml  --use
-</span></span><span style=display:flex><span>vibrant_cohen
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>&gt; time docker buildx build -t registry:5000/image <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>  --cache-from type<span style=color:#f92672>=</span>registry,ref<span style=color:#f92672>=</span>registry:5000/image <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>  --cache-to type<span style=color:#f92672>=</span>registry,ref<span style=color:#f92672>=</span>registry:5000/image --load .
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#f92672>[</span>+<span style=color:#f92672>]</span> Building 2.4s <span style=color:#f92672>(</span>11/11<span style=color:#f92672>)</span> FINISHED                                             docker-container:pensive_taussig
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>internal<span style=color:#f92672>]</span> load build definition from Dockerfile
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; transferring dockerfile: 161B
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>internal<span style=color:#f92672>]</span> load metadata <span style=color:#66d9ef>for</span> docker.io/library/python:alpine
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>internal<span style=color:#f92672>]</span> load .dockerignore
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; transferring context: 2B
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; importing cache manifest from registry:5000/image
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; inferred cache manifest type: application/vnd.oci.image.index.v1+json
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>[</span>1/4<span style=color:#f92672>]</span> FROM docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7cca
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; resolve docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7cca
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; CACHED <span style=color:#f92672>[</span>2/4<span style=color:#f92672>]</span> RUN apk add jq
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; CACHED <span style=color:#f92672>[</span>3/4<span style=color:#f92672>]</span> RUN sleep <span style=color:#ae81ff>20</span> <span style=color:#75715e># let&#39;s say we build some boilerplate stuff here</span>
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; CACHED <span style=color:#f92672>[</span>4/4<span style=color:#f92672>]</span> RUN echo <span style=color:#e6db74>&#34;</span><span style=color:#66d9ef>$(</span>date<span style=color:#66d9ef>)</span><span style=color:#e6db74>&#34;</span> &gt; /date2
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; exporting to docker image format
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting layers
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting manifest sha256:4532df521ca93c2519f9ff8338f30e13fba723332447bcd3e003dd47630142a2
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; exporting config sha256:9debadcc86872631a1a0b7eafd2972d6beca3456f0b043eb80b52d2681a0d548
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; sending tarball
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; importing to docker
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; loading layer d4fc045c9e3a 65.54kB / 3.41MB
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; loading layer 678cac8b069e 32.77kB / 622.15kB
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; loading layer 0c9bfb14c909 131.07kB / 11.77MB
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; loading layer d2968c01735e 242B / 242B
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; loading layer 5305019f4685 32.77kB / 2.70MB
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; loading layer 37d2dfc1707b 32.77kB / 2.71MB
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; loading layer 5f70bf18a086 32B / 32B
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; loading layer 5a36026cdcc3 126B / 126B
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; exporting cache to registry
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; preparing build cache <span style=color:#66d9ef>for</span> export
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:270999341ddcf70feedda4bff6d081483f1ad384e5aa13f268f828ed469f5402
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:4fc96b5c1ba465ba27fb55d4766ade8624de4082ac1530b3293ac735ab3ead50
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:a8fd6f3f484fdfccf33965ca0f8807e5078a619803cf638d82bc4a405e91de04
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:caa4e319395ae52ea041b5a6cca32833cecc2b192a18cef42e77a6e0446c9f4a
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:dca80dc46cecdd1a97787a1dd6f74263b9d2f7b0dd3e2e15c109f5e34848c932
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing layer sha256:fe9e15b6315c34de5c802bdbd343e3ec69bdc4ab870783fc1b9552daaef25e77
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing config sha256:fccd66ca6f5e29c42a8444b3f74df1ecb8c94114429a851e093de718ba55decc
-</span></span><span style=display:flex><span> <span style=color:#f92672>=</span>&gt; <span style=color:#f92672>=</span>&gt; writing cache manifest sha256:b76d6f554cffd020b6b14656e332527dfb19ab01376d0473cc12a5580a2d9c45
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>real    0m2.625s
-</span></span><span style=display:flex><span>user    0m0.255s
-</span></span><span style=display:flex><span>sys     0m0.041s
-</span></span></code></pre></div><p>That was super fast, because for most of the layers, there was a cache hit in the registry. That means whatever layer has been built by another worker, our worker2 can now access it and use it without building it !</p><p>Now if we tweak the Dockerfile a bit, and rerun the command, we might have some cache misses on the new layers, but it&rsquo;s still an improvement !</p><p>Whenever a runner will need these first few layers
+But now, let&rsquo;s do the same thing on the second worker. We&rsquo;ll prune it beforehand, so it has no local cache for what we&rsquo;ll be building:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl">&gt; docker system prune -a -f
+</span></span><span class="line"><span class="cl"><span class="o">[</span>...<span class="o">]</span>
+</span></span><span class="line"><span class="cl">Total reclaimed space: 46.23MB
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&gt; docker buildx create --config<span class="o">=</span>buildkit.toml  --use
+</span></span><span class="line"><span class="cl">vibrant_cohen
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&gt; <span class="nb">time</span> docker buildx build -t registry:5000/image <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --cache-from <span class="nv">type</span><span class="o">=</span>registry,ref<span class="o">=</span>registry:5000/image <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --cache-to <span class="nv">type</span><span class="o">=</span>registry,ref<span class="o">=</span>registry:5000/image --load .
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">[</span>+<span class="o">]</span> Building 2.4s <span class="o">(</span>11/11<span class="o">)</span> FINISHED                                             docker-container:pensive_taussig
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>internal<span class="o">]</span> load build definition from <span class="nv">Dockerfile</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; transferring dockerfile: <span class="nv">161B</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>internal<span class="o">]</span> load metadata <span class="k">for</span> docker.io/library/python:alpine
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>internal<span class="o">]</span> load .dockerignore
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; transferring context: <span class="nv">2B</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; importing cache manifest from registry:5000/image
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; inferred cache manifest type: application/vnd.oci.image.index.v1+json
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">[</span>1/4<span class="o">]</span> FROM docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7cca
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; resolve docker.io/library/python:alpine@sha256:1a0501213b470de000d8432b3caab9d8de5489e9443c2cc7cca
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; CACHED <span class="o">[</span>2/4<span class="o">]</span> RUN apk add <span class="nv">jq</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; CACHED <span class="o">[</span>3/4<span class="o">]</span> RUN sleep <span class="m">20</span> <span class="c1"># let&#39;s say we build some boilerplate stuff here</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; CACHED <span class="o">[</span>4/4<span class="o">]</span> RUN <span class="nb">echo</span> <span class="s2">&#34;</span><span class="k">$(</span>date<span class="k">)</span><span class="s2">&#34;</span> &gt; /date2
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; exporting to docker image <span class="nv">format</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting <span class="nv">layers</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting manifest sha256:4532df521ca93c2519f9ff8338f30e13fba723332447bcd3e003dd47630142a2
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; exporting config sha256:9debadcc86872631a1a0b7eafd2972d6beca3456f0b043eb80b52d2681a0d548
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; sending <span class="nv">tarball</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; importing to <span class="nv">docker</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; loading layer d4fc045c9e3a 65.54kB / 3.41MB
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; loading layer 678cac8b069e 32.77kB / 622.15kB
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; loading layer 0c9bfb14c909 131.07kB / 11.77MB
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; loading layer d2968c01735e 242B / <span class="nv">242B</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; loading layer 5305019f4685 32.77kB / 2.70MB
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; loading layer 37d2dfc1707b 32.77kB / 2.71MB
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; loading layer 5f70bf18a086 32B / <span class="nv">32B</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; loading layer 5a36026cdcc3 126B / <span class="nv">126B</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; exporting cache to <span class="nv">registry</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; preparing build cache <span class="k">for</span> <span class="nb">export</span>
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:270999341ddcf70feedda4bff6d081483f1ad384e5aa13f268f828ed469f5402
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:4abcf20661432fb2d719aaf90656f55c287f8ca915dc1c92ec14ff61e67fbaf8
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:4fc96b5c1ba465ba27fb55d4766ade8624de4082ac1530b3293ac735ab3ead50
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:a8fd6f3f484fdfccf33965ca0f8807e5078a619803cf638d82bc4a405e91de04
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:caa4e319395ae52ea041b5a6cca32833cecc2b192a18cef42e77a6e0446c9f4a
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:dca80dc46cecdd1a97787a1dd6f74263b9d2f7b0dd3e2e15c109f5e34848c932
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing layer sha256:fe9e15b6315c34de5c802bdbd343e3ec69bdc4ab870783fc1b9552daaef25e77
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing config sha256:fccd66ca6f5e29c42a8444b3f74df1ecb8c94114429a851e093de718ba55decc
+</span></span><span class="line"><span class="cl"> <span class="o">=</span>&gt; <span class="o">=</span>&gt; writing cache manifest sha256:b76d6f554cffd020b6b14656e332527dfb19ab01376d0473cc12a5580a2d9c45
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">real    0m2.625s
+</span></span><span class="line"><span class="cl">user    0m0.255s
+</span></span><span class="line"><span class="cl">sys     0m0.041s
+</span></span></code></pre></div><p>That was super fast, because for most of the layers, there was a cache hit in the registry. That means whatever layer has been built by another worker, our worker2 can now access it and use it without building it !</p>
+<p>Now if we tweak the Dockerfile a bit, and rerun the command, we might have some cache misses on the new layers, but it&rsquo;s still an improvement !</p>
+<p>Whenever a runner will need these first few layers
 (eg building dependencies, compiling some boilerplate stuff, etc).. he will be able to pull them from this cache,
-and only work on what matters (compiling code that has changed, copying over build artifacts..).</p><h2 id=quick-maths>quick maths</h2><p>In this <em>real world very production grade</em> example, we&rsquo;ve reduced the build time from ~20s to ~2s. No matter what the rest of the Dockerfile looks like, it&rsquo;s 18 seconds shaved off the total runtime for this particular job. Let&rsquo;s say these boilerplate layers are used in a repository with 20 commits a day, 5 days a week, we could shave off
+and only work on what matters (compiling code that has changed, copying over build artifacts..).</p>
+<h2 id="quick-maths">quick maths<a hidden class="anchor" aria-hidden="true" href="#quick-maths">#</a></h2>
+<p>In this <em>real world very production grade</em> example, we&rsquo;ve reduced the build time from ~20s to ~2s. No matter what the rest of the Dockerfile looks like, it&rsquo;s 18 seconds shaved off the total runtime for this particular job. Let&rsquo;s say these boilerplate layers are used in a repository with 20 commits a day, 5 days a week, we could shave off
 <strong>(18s per run) * (20 runs per day) * 5 days = 30 minutes</strong>
-of CI runtime weekly. Multiply that by the number of repos * weeks worked in a year, and this number can quickly tally up into <strong>days</strong> !</p><h2 id=limitations-and-caveats>limitations and caveats</h2><p>This setup isn&rsquo;t perfect, and there are a few drawbacks/things to consider when thinking about deploying such a system:</p><p>First, it&rsquo;s needless to say, the simple <strong>registry:latest</strong> container depicted in this setup isn&rsquo;t prepared for much more, as there is no persistent storage, and plain HTTP is used. A more robust container registry might be needed (think Harbor)</p><p>Second, because this is using <em>buildx</em>, you have to choose between loading the resulting image (eg for testing), or pushing it to the registry, as using both <code>--pull</code> and <code>--load</code> isn&rsquo;t allowed. That might be fine for a (git pull/ docker build/docker push) type of CI, but if you need to both push and use the image, you&rsquo;re out of luck, and you&rsquo;ll surely need to run two commands.
-Third, and maybe the the main caveat about this setup: <code>cache invalidation</code>:</p><ul><li>one of your worker pulls an image, URL or ressource, creates a layer out of it and pushes it to the cache</li><li>you obviously want to use this layer as much as possible, reducing bandwidth usage, compute time, etc</li><li>the external ressource gets updated (eg a new commit, updated base image..)</li><li>But your local instruction for fetching the resource hasn&rsquo;t changed (it&rsquo;s still <code>RUN git clone</code>)</li><li>you are now out of sync with the resource, building outdated layers.</li></ul><p>And there lies the root issue, of <strong>when</strong> should we invalidate a given layer on the registry.
+of CI runtime weekly. Multiply that by the number of repos * weeks worked in a year, and this number can quickly tally up into <strong>days</strong> !</p>
+<h2 id="limitations-and-caveats">limitations and caveats<a hidden class="anchor" aria-hidden="true" href="#limitations-and-caveats">#</a></h2>
+<p>This setup isn&rsquo;t perfect, and there are a few drawbacks/things to consider when thinking about deploying such a system:</p>
+<p>First, it&rsquo;s needless to say, the simple <strong>registry:latest</strong> container depicted in this setup isn&rsquo;t prepared for much more, as there is no persistent storage, and plain HTTP is used. A more robust container registry might be needed (think Harbor)</p>
+<p>Second, because this is using <em>buildx</em>, you have to choose between loading the resulting image (eg for testing), or pushing it to the registry, as using both <code>--pull</code> and <code>--load</code> isn&rsquo;t allowed. That might be fine for a (git pull/ docker build/docker push) type of CI, but if you need to both push and use the image, you&rsquo;re out of luck, and you&rsquo;ll surely need to run two commands.
+Third, and maybe the the main caveat about this setup: <code>cache invalidation</code>:</p>
+<ul>
+<li>one of your worker pulls an image, URL or ressource, creates a layer out of it and pushes it to the cache</li>
+<li>you obviously want to use this layer as much as possible, reducing bandwidth usage, compute time, etc</li>
+<li>the external ressource gets updated (eg a new commit, updated base image..)</li>
+<li>But your local instruction for fetching the resource hasn&rsquo;t changed (it&rsquo;s still <code>RUN git clone</code>)</li>
+<li>you are now out of sync with the resource, building outdated layers.</li>
+</ul>
+<p>And there lies the root issue, of <strong>when</strong> should we invalidate a given layer on the registry.
 Doing it too often kinda defeats the purpose of the shared registry,
-on the other hand doing it at sparse intervals mean higher chance of using outdated layers.</p><p>There is no silver bullet for this particular problem, it depends solely on the setup/goal.</p><p>Finally, depending on how many workers/repos/build are used,
-this can create a huge number of layers in the registry. And all this cache can accumulate quickly, using quite a lot of disk space over time.</p><p>Happy caching !</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/local-llm/><span class=button__icon>←</span>
-<span class=button__text>Using a local LLM as a personnal engineering sidekick</span>
-</a></span><span class="button next"><a href=/posts/smartcity/><span class=button__text>A smart city demonstrator</span>
-<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span></a><div class=copyright><span>© 2024 Powered by
-<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
-<span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script><script src=/assets/prism.js></script></div></body></html>
+on the other hand doing it at sparse intervals mean higher chance of using outdated layers.</p>
+<p>There is no silver bullet for this particular problem, it depends solely on the setup/goal.</p>
+<p>Finally, depending on how many workers/repos/build are used,
+this can create a huge number of layers in the registry. And all this cache can accumulate quickly, using quite a lot of disk space over time.</p>
+<p>Happy caching !</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/docker/">Docker</a></li>
+      <li><a href="/tags/linux/">Linux</a></li>
+      <li><a href="/tags/ci/">CI</a></li>
+      <li><a href="/tags/cloud-init/">Cloud-Init</a></li>
+      <li><a href="/tags/buildx/">Buildx</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="/posts/local-llm/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>Using a local LLM as a personnal engineering sidekick</span>
+  </a>
+  <a class="next" href="/posts/smartcity/">
+    <span class="title">Next »</span>
+    <br>
+    <span>A smart city demonstrator</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="/">k0rventen&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

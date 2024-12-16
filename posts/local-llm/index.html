@@ -1,35 +1,241 @@
-<!doctype html><html lang=en><head><title>Using a local LLM as a personnal engineering sidekick ::
-</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="what &amp;amp; why Lately (in the last year) I&amp;rsquo;ve been using openAI&amp;rsquo;s chatGPT 3.5-turbo in my terminal, as kind of a personnal rubberducky/sidekick engineer.
-In my fish config I had the following function (from my dotfiles):
-# needs set -U OPENAI_KEY &amp;lt;KEY&amp;gt; if command -q https; and command -q yq alias h &amp;#39;hey_gpt&amp;#39; function hey_gpt --description &amp;#34;talk to gpt&amp;#34; set prompt (echo $argv | string join &amp;#39; &amp;#39;) set gpt (https -b post api."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/local-llm/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Using a local LLM as a personnal engineering sidekick"><meta name=twitter:description content="If you're Batman, he's Robin."><meta property="og:title" content="Using a local LLM as a personnal engineering sidekick"><meta property="og:description" content="If you're Batman, he's Robin."><meta property="og:type" content="article"><meta property="og:url" content="/posts/local-llm/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2024-03-20T00:00:00+00:00"><meta property="article:modified_time" content="2024-03-20T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a><span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Using a local LLM as a personnal engineering sidekick</h1><div class=post-meta><span class=post-date>2024-03-20
-</span><span class=post-read-time>— 5 min read</span></div><span class=post-tags><a href=/tags/10x-engineer/>#10x-engineer</a>&nbsp;
-<a href=/tags/llm/>#llm</a>&nbsp;
-<a href=/tags/ollama/>#ollama</a>&nbsp;
-<a href=/tags/ai/>#ai</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#what--why>what & why</a></li><li><a href=#how>how</a><ul><li><a href=#llama3-update>llama3 update</a></li></ul></li></ul></nav></aside><h1 id=what--why>what & why</h1><p>Lately (in the last year) I&rsquo;ve been using openAI&rsquo;s chatGPT 3.5-turbo in my terminal, as kind of a personnal rubberducky/sidekick engineer.</p><p>In my fish config I had the following function (from <a href=https://github.com/k0rventen/.dotfiles>my dotfiles</a>):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># needs set -U OPENAI_KEY &lt;KEY&gt;</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> command -q https; and command -q yq
-</span></span><span style=display:flex><span>  alias h <span style=color:#e6db74>&#39;hey_gpt&#39;</span>
-</span></span><span style=display:flex><span>  <span style=color:#66d9ef>function</span> hey_gpt --description <span style=color:#e6db74>&#34;talk to gpt&#34;</span>
-</span></span><span style=display:flex><span>      set prompt <span style=color:#f92672>(</span>echo $argv | string join <span style=color:#e6db74>&#39; &#39;</span><span style=color:#f92672>)</span>
-</span></span><span style=display:flex><span>      set gpt <span style=color:#f92672>(</span>https -b post api.openai.com/v1/chat/completions <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>                  <span style=color:#e6db74>&#34;Authorization: Bearer </span>$OPENAI_KEY<span style=color:#e6db74>&#34;</span> <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>                  model<span style=color:#f92672>=</span>gpt-3.5-turbo <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>                  temperature:<span style=color:#f92672>=</span>0.25 <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>                  stream:<span style=color:#f92672>=</span>true <span style=color:#ae81ff>\
-</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>                  messages:<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;[{&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;&#39;</span>$prompt<span style=color:#e6db74>&#39;&#34;}]&#39;</span><span style=color:#f92672>)</span>
-</span></span><span style=display:flex><span>      <span style=color:#66d9ef>for</span> chunk in $gpt
-</span></span><span style=display:flex><span>          <span style=color:#66d9ef>if</span> test $chunk <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;data: [DONE]&#39;</span>
-</span></span><span style=display:flex><span>              break
-</span></span><span style=display:flex><span>          <span style=color:#66d9ef>else</span> <span style=color:#66d9ef>if</span> string match -q --regex <span style=color:#e6db74>&#34;content&#34;</span> $chunk
-</span></span><span style=display:flex><span>              yq -0 <span style=color:#e6db74>&#39;.choices[0].delta.content&#39;</span> &lt; <span style=color:#f92672>(</span>echo -n $chunk | string replace <span style=color:#e6db74>&#39;data: &#39;</span> <span style=color:#e6db74>&#39;&#39;</span> | psub<span style=color:#f92672>)</span>
-</span></span><span style=display:flex><span>          end
-</span></span><span style=display:flex><span>      end
-</span></span><span style=display:flex><span>  end
-</span></span><span style=display:flex><span>end
-</span></span></code></pre></div><p>This allowed me to do things like this right in my terminal:</p><pre tabindex=0><code>&gt; h how can i extract a single file from a tar archive
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Using a local LLM as a personnal engineering sidekick | k0rventen&#39;s blog</title>
+<meta name="keywords" content="10x-engineer, llm, ollama, ai">
+<meta name="description" content="If you&#39;re Batman, he&#39;s Robin.">
+<meta name="author" content="">
+<link rel="canonical" href="/posts/local-llm/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.d6fcd20a4fb86efa4dfac8ec95da60244cc8871042183da1ef28e3a762ad79c8.css" integrity="sha256-1vzSCk&#43;4bvpN&#43;sjsldpgJEzIhxBCGD2h7yjjp2Ktecg=" rel="preload stylesheet" as="style">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="/posts/local-llm/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/local-llm/">
+  <meta property="og:site_name" content="k0rventen&#39;s blog">
+  <meta property="og:title" content="Using a local LLM as a personnal engineering sidekick">
+  <meta property="og:description" content="If you&#39;re Batman, he&#39;s Robin.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-03-20T00:00:00+00:00">
+    <meta property="article:modified_time" content="2024-03-20T00:00:00+00:00">
+    <meta property="article:tag" content="10x-Engineer">
+    <meta property="article:tag" content="Llm">
+    <meta property="article:tag" content="Ollama">
+    <meta property="article:tag" content="Ai">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Using a local LLM as a personnal engineering sidekick">
+<meta name="twitter:description" content="If you&#39;re Batman, he&#39;s Robin.">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Using a local LLM as a personnal engineering sidekick",
+      "item": "/posts/local-llm/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Using a local LLM as a personnal engineering sidekick",
+  "name": "Using a local LLM as a personnal engineering sidekick",
+  "description": "If you're Batman, he's Robin.",
+  "keywords": [
+    "10x-engineer", "llm", "ollama", "ai"
+  ],
+  "articleBody": "what \u0026 why Lately (in the last year) I’ve been using openAI’s chatGPT 3.5-turbo in my terminal, as kind of a personnal rubberducky/sidekick engineer.\nIn my fish config I had the following function (from my dotfiles):\n# needs set -U OPENAI_KEY if command -q https; and command -q yq alias h 'hey_gpt' function hey_gpt --description \"talk to gpt\" set prompt (echo $argv | string join ' ') set gpt (https -b post api.openai.com/v1/chat/completions \\ \"Authorization: Bearer $OPENAI_KEY\" \\ model=gpt-3.5-turbo \\ temperature:=0.25 \\ stream:=true \\ messages:='[{\"role\": \"user\", \"content\": \"'$prompt'\"}]') for chunk in $gpt if test $chunk = 'data: [DONE]' break else if string match -q --regex \"content\" $chunk yq -0 '.choices[0].delta.content' \u003c (echo -n $chunk | string replace 'data: ' '' | psub) end end end end This allowed me to do things like this right in my terminal:\n\u003e h how can i extract a single file from a tar archive To extract a single file from a .tar archive, you can use the tar command in the terminal or command line. The basic syntax for extracting a specific file is as follows: bash tar -xf archive.tar path/to/file Here's a breakdown of the command: tar: The command to call the tar utility. -x: Tells tar to extract files. -f: Specifies that you're going to specify the name of the archive file. archive.tar: The name of your tar archive. Replace archive.tar with the actual name of your tar file. path/to/file: The path to the file you want to extract from the archive, relative to the root of the tar archive. Replace this with the actual path to your file within the archive. But earlier this month, openAI decided to change their billing policy, and instead of being a ‘pay as you go’ model, they switched to a ‘pay first, use credits’. Well my ‘invoices’ for openAI were at best a couple of cents every month, and it seemed silly to pay like 2 euros, event if that would last me a couple of years.\nSo let’s see how can we reproduce the same setup, but using local AI.\nhow the easiest way of running local LLM AFAIK is through ollama.\nYou just download it and put it in your path and you are basically ready to go.\nSomething like:\n\u003e brew install ollama \u003e ollama serve \u0026 \u003e ollama run gemma:7b how far is the sun ? The average distance between the Sun and Earth is approximately: **93 million miles (150 million kilometers)** This distance is known as an **Astronomical Unit (AU)**, which is often used to measure distances within our solar system. Then, we just have to find an appropriate model. In my case, I want a model that can help me mostly for tech related questions, like how to use the command X to do Y, maybe some code/manifests generation.\nWe can define a Modelfile. It’s basically a Dockerfile for LLMs. Mine looks like this:\nFROM mistral:7b PARAMETER temperature 0.2 PARAMETER top_k 30 PARAMETER top_p 0.5 SYSTEM \"\"\"You are an experienced software engineer. You have deep knowledge regarding linux, devops tooling, and kubernetes. Your answers should be succint and to the point. do not write more than a few lines. If the user doesn't ask for an explanation or an example, do not provide one. Just provide the necessary informations, like a shell command, a code snippet. \"\"\" I can now create my own tuned LLM using :\n\u003e ollama create -f Modelfile sidekick And my wrapper has been heavily simplified to this:\nfunction help_me --description 'talk to ollama' ollama run sidekick \"$argv\" end My workflow is now back to normal, and I can ask my sidekick stupid questions about the find / tar arguments daily:\n\u003e h how to find only files older than 10 days in linux using find `find /path -type f -mtime +10` This model consumes around 4Go of RAM when loaded, and it averages 6 tokens/sec for eval:\ntotal duration: 6.938500483s load duration: 165.753µs prompt eval count: 17 token(s) prompt eval duration: 1.347514s prompt eval rate: 12.62 tokens/s eval count: 35 token(s) eval duration: 5.590406s eval rate: 6.26 tokens/s Obviously depending on the machine things might be slower than using openAI’s API, and my machine might get a bit warm, but now I know my questions aren’t being used for $BIG_CORP_AI, and I can fine tune the behavior and responses of the model !\n\u003e h how to end a post about using an LLM as a sidekick engineer To conclude, as a Sidekick Engineer using an LLM (Large Language Model) in a Linux environment with DevOps tooling and Kubernetes: 1. Install the required packages for your LLM. 2. Set up authentication and access to necessary repositories. 3. Configure your LLM to interact with tools like Git, Docker, Helm, etc. 4. Use your LLM to assist in writing scripts, configuring files, or troubleshooting issues. 5. Ensure proper security measures are in place for sensitive data and access. 6. Continuously improve the effectiveness of your LLM by fine-tuning and updating it. 7. Monitor performance and resource usage to maintain optimal system health. Happy engineering! Oh well, my job ain’t dead anytime soon.\nllama3 update With the release of llama3 I’ve switched to this model (specifically llama3:8b) and tweaked the system prompt a bit:\nThis is quite an improvement over mistral/gemma. The responses are on point, usually better overall (in accurary / correctness).\nAsking the same question as before:\n\u003e h write the conclusion of a blog post about using a local LLM as a sidekick engineer \"In conclusion, leveraging a local Large Language Model (LLM) as a sidekick engineer has revolutionized my workflow and productivity. By automating repetitive tasks, providing instant language translation, and offering expert-level suggestions, my LLM sidekick has become an indispensable tool in my daily engineering routine. With its ability to learn from my interactions and adapt to my specific needs, I'm excited to see the continued evolution of this technology and how it will further augment my skills as a software engineer.\" On a more tech subject:\n\u003e h how to copy every file ending in pdf recursively from a folder into another given directory `find /source/folder -type f -name \"*.pdf\" -exec cp {} /destination/directory \\;` It’s still not as fast as chatGPT (and certainly not as good as the 4o model), but it still serves me daily !\n",
+  "wordCount" : "1059",
+  "inLanguage": "en",
+  "datePublished": "2024-03-20T00:00:00Z",
+  "dateModified": "2024-03-20T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/local-llm/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "k0rventen's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="/" accesskey="h" title="&gt; k0rventen: ~ (Alt + H)">&gt; k0rventen: ~</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/links" title="links">
+                    <span>links</span>
+                </a>
+            </li>
+            <li>
+                <a href="/posts" title="posts">
+                    <span>posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="/search" title="search (Alt &#43; /)" accesskey=/>
+                    <span>search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="/">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Using a local LLM as a personnal engineering sidekick
+    </h1>
+    <div class="post-description">
+      If you&#39;re Batman, he&#39;s Robin.
+    </div>
+    <div class="post-meta"><span title='2024-03-20 00:00:00 +0000 UTC'>March 20, 2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;1059 words
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#llama3-update">llama3 update</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="what--why">what &amp; why<a hidden class="anchor" aria-hidden="true" href="#what--why">#</a></h1>
+<p>Lately (in the last year) I&rsquo;ve been using openAI&rsquo;s chatGPT 3.5-turbo in my terminal, as kind of a personnal rubberducky/sidekick engineer.</p>
+<p>In my fish config I had the following function (from <a href="https://github.com/k0rventen/.dotfiles">my dotfiles</a>):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl"><span class="c1"># needs set -U OPENAI_KEY &lt;KEY&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="nb">command</span> -q https<span class="p">;</span> and <span class="nb">command</span> -q yq
+</span></span><span class="line"><span class="cl">  <span class="nb">alias</span> h <span class="s1">&#39;hey_gpt&#39;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">function</span> hey_gpt --description <span class="s2">&#34;talk to gpt&#34;</span>
+</span></span><span class="line"><span class="cl">      <span class="nb">set</span> prompt <span class="o">(</span><span class="nb">echo</span> <span class="nv">$argv</span> <span class="p">|</span> string join <span class="s1">&#39; &#39;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">      <span class="nb">set</span> gpt <span class="o">(</span>https -b post api.openai.com/v1/chat/completions <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>                  <span class="s2">&#34;Authorization: Bearer </span><span class="nv">$OPENAI_KEY</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>                  <span class="nv">model</span><span class="o">=</span>gpt-3.5-turbo <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>                  temperature:<span class="o">=</span>0.25 <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>                  stream:<span class="o">=</span><span class="nb">true</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>                  messages:<span class="o">=</span><span class="s1">&#39;[{&#34;role&#34;: &#34;user&#34;, &#34;content&#34;: &#34;&#39;</span><span class="nv">$prompt</span><span class="s1">&#39;&#34;}]&#39;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">      <span class="k">for</span> chunk in <span class="nv">$gpt</span>
+</span></span><span class="line"><span class="cl">          <span class="k">if</span> <span class="nb">test</span> <span class="nv">$chunk</span> <span class="o">=</span> <span class="s1">&#39;data: [DONE]&#39;</span>
+</span></span><span class="line"><span class="cl">              <span class="nb">break</span>
+</span></span><span class="line"><span class="cl">          <span class="k">else</span> <span class="k">if</span> string match -q --regex <span class="s2">&#34;content&#34;</span> <span class="nv">$chunk</span>
+</span></span><span class="line"><span class="cl">              yq -0 <span class="s1">&#39;.choices[0].delta.content&#39;</span> &lt; <span class="o">(</span><span class="nb">echo</span> -n <span class="nv">$chunk</span> <span class="p">|</span> string replace <span class="s1">&#39;data: &#39;</span> <span class="s1">&#39;&#39;</span> <span class="p">|</span> psub<span class="o">)</span>
+</span></span><span class="line"><span class="cl">          end
+</span></span><span class="line"><span class="cl">      end
+</span></span><span class="line"><span class="cl">  end
+</span></span><span class="line"><span class="cl">end
+</span></span></code></pre></div><p>This allowed me to do things like this right in my terminal:</p>
+<pre tabindex="0"><code>&gt; h how can i extract a single file from a tar archive
 
 To extract a single file from a .tar archive, you can use the tar command in the terminal or command line. The basic syntax for extracting a specific file is as follows:
 
@@ -43,7 +249,13 @@ Here&#39;s a breakdown of the command:
     -f: Specifies that you&#39;re going to specify the name of the archive file.
     archive.tar: The name of your tar archive. Replace archive.tar with the actual name of your tar file.
     path/to/file: The path to the file you want to extract from the archive, relative to the root of the tar archive. Replace this with the actual path to your file within the archive.
-</code></pre><p>But earlier this month, openAI decided to change their billing policy, and instead of being a &lsquo;pay as you go&rsquo; model, they switched to a &lsquo;pay first, use credits&rsquo;. Well my &lsquo;invoices&rsquo; for openAI were at best a couple of cents every month, and it seemed silly to pay like 2 euros, event if that would last me a couple of years.</p><p>So let&rsquo;s see how can we reproduce the same setup, but using local AI.</p><h1 id=how>how</h1><p>the easiest way of running local LLM AFAIK is through <a href=https://github.com/ollama/ollama>ollama</a>.</p><p>You just download it and put it in your path and you are basically ready to go.</p><p>Something like:</p><pre tabindex=0><code>&gt; brew install ollama
+</code></pre><p>But earlier this month, openAI decided to change their billing policy, and instead of being a &lsquo;pay as you go&rsquo; model, they switched to a &lsquo;pay first, use credits&rsquo;. Well my &lsquo;invoices&rsquo; for openAI were at best a couple of cents every month, and it seemed silly to pay like 2 euros, event if that would last me a couple of years.</p>
+<p>So let&rsquo;s see how can we reproduce the same setup, but using local AI.</p>
+<h1 id="how">how<a hidden class="anchor" aria-hidden="true" href="#how">#</a></h1>
+<p>the easiest way of running local LLM AFAIK is through <a href="https://github.com/ollama/ollama">ollama</a>.</p>
+<p>You just download it and put it in your path and you are basically ready to go.</p>
+<p>Something like:</p>
+<pre tabindex="0"><code>&gt; brew install ollama
 &gt; ollama serve &amp;
 &gt; ollama run gemma:7b how far is the sun ?
 
@@ -53,26 +265,32 @@ The average distance between the Sun and Earth is approximately:
 
 This distance is known as an **Astronomical Unit (AU)**, which is often 
 used to measure distances within our solar system.
-</code></pre><p>Then, we just have to find an appropriate model. In my case, I want a model that can help me mostly for tech related questions, like how to use the command <em>X</em> to do <em>Y</em>, maybe some code/manifests generation.</p><p>We can define a <code>Modelfile</code>. It&rsquo;s basically a Dockerfile for LLMs. Mine looks like this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-Dockerfile data-lang=Dockerfile><span style=display:flex><span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> mistral:7b</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>PARAMETER temperature 0.2<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>PARAMETER top_k <span style=color:#ae81ff>30</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>PARAMETER top_p 0.5<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>SYSTEM <span style=color:#e6db74>&#34;&#34;&#34;You are an experienced software engineer. </span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>You have deep knowledge regarding linux, devops tooling, and kubernetes.<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>Your answers should be succint and to the point. <span style=color:#66d9ef>do</span> not write more than a few lines.<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>If the user doesn<span style=color:#960050;background-color:#1e0010>&#39;</span>t ask <span style=color:#66d9ef>for</span> an explanation or an example, <span style=color:#66d9ef>do</span> not provide one.<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>Just provide the necessary informations, like a shell command, a code snippet.<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#e6db74>&#34;&#34;&#34;</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span></code></pre></div><p>I can now create my own tuned LLM using :</p><pre tabindex=0><code>&gt; ollama create -f Modelfile sidekick
-</code></pre><p>And my wrapper has been heavily simplified to this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#66d9ef>function</span> help_me --description <span style=color:#e6db74>&#39;talk to ollama&#39;</span>
-</span></span><span style=display:flex><span>      ollama run sidekick <span style=color:#e6db74>&#34;</span>$argv<span style=color:#e6db74>&#34;</span>
-</span></span><span style=display:flex><span>end
-</span></span></code></pre></div><p>My workflow is now back to normal, and I can ask my sidekick stupid questions about the find / tar arguments daily:</p><pre tabindex=0><code>&gt; h how to find only files older than 10 days in linux using find 
+</code></pre><p>Then, we just have to find an appropriate model. In my case, I want a model that can help me mostly for tech related questions, like how to use the command <em>X</em> to do <em>Y</em>, maybe some code/manifests generation.</p>
+<p>We can define a <code>Modelfile</code>. It&rsquo;s basically a Dockerfile for LLMs. Mine looks like this:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-Dockerfile" data-lang="Dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> mistral:7b</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span>PARAMETER temperature 0.2<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span>PARAMETER top_k <span class="m">30</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span>PARAMETER top_p 0.5<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span>SYSTEM <span class="s2">&#34;&#34;&#34;You are an experienced software engineer. </span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span>You have deep knowledge regarding linux, devops tooling, and kubernetes.<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span>Your answers should be succint and to the point. <span class="k">do</span> not write more than a few lines.<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span>If the user doesn<span class="err">&#39;</span>t ask <span class="k">for</span> an explanation or an example, <span class="k">do</span> not provide one.<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span>Just provide the necessary informations, like a shell command, a code snippet.<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="s2">&#34;&#34;&#34;</span><span class="err">
+</span></span></span></code></pre></div><p>I can now create my own tuned LLM using :</p>
+<pre tabindex="0"><code>&gt; ollama create -f Modelfile sidekick
+</code></pre><p>And my wrapper has been heavily simplified to this:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl"><span class="k">function</span> help_me --description <span class="s1">&#39;talk to ollama&#39;</span>
+</span></span><span class="line"><span class="cl">      ollama run sidekick <span class="s2">&#34;</span><span class="nv">$argv</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">end
+</span></span></code></pre></div><p>My workflow is now back to normal, and I can ask my sidekick stupid questions about the find / tar arguments daily:</p>
+<pre tabindex="0"><code>&gt; h how to find only files older than 10 days in linux using find 
 
  `find /path -type f -mtime +10`
-</code></pre><p>This model consumes around 4Go of RAM when loaded, and it averages 6 tokens/sec for eval:</p><pre tabindex=0><code>total duration:       6.938500483s
+</code></pre><p>This model consumes around 4Go of RAM when loaded, and it averages 6 tokens/sec for eval:</p>
+<pre tabindex="0"><code>total duration:       6.938500483s
 load duration:        165.753µs
 prompt eval count:    17 token(s)
 prompt eval duration: 1.347514s
@@ -81,7 +299,8 @@ eval count:           35 token(s)
 eval duration:        5.590406s
 eval rate:            6.26 tokens/s
 </code></pre><p>Obviously depending on the machine things might be slower than using openAI&rsquo;s API, and my machine might get a bit warm,
-but now I know my questions aren&rsquo;t being used for $BIG_CORP_AI, and I can fine tune the behavior and responses of the model !</p><pre tabindex=0><code>&gt; h how to end a post about using an LLM as a sidekick engineer
+but now I know my questions aren&rsquo;t being used for $BIG_CORP_AI, and I can fine tune the behavior and responses of the model !</p>
+<pre tabindex="0"><code>&gt; h how to end a post about using an LLM as a sidekick engineer
 
  To conclude, as a Sidekick Engineer using an LLM (Large Language Model) 
 in a Linux environment with DevOps tooling and Kubernetes:
@@ -99,7 +318,12 @@ updating it.
 health.
 
 Happy engineering!
-</code></pre><p>Oh well, my job ain&rsquo;t dead anytime soon.</p><h2 id=llama3-update>llama3 update</h2><p>With the release of llama3 I&rsquo;ve switched to this model (specifically llama3:8b) and tweaked the system prompt a bit:</p><p>This is quite an improvement over mistral/gemma. The responses are on point, usually better overall (in accurary / correctness).</p><p>Asking the same question as before:</p><pre tabindex=0><code>&gt; h write the conclusion of a blog post about using a local LLM as a sidekick engineer
+</code></pre><p>Oh well, my job ain&rsquo;t dead anytime soon.</p>
+<h2 id="llama3-update">llama3 update<a hidden class="anchor" aria-hidden="true" href="#llama3-update">#</a></h2>
+<p>With the release of llama3 I&rsquo;ve switched to this model (specifically llama3:8b) and tweaked the system prompt a bit:</p>
+<p>This is quite an improvement over mistral/gemma. The responses are on point, usually better overall (in accurary / correctness).</p>
+<p>Asking the same question as before:</p>
+<pre tabindex="0"><code>&gt; h write the conclusion of a blog post about using a local LLM as a sidekick engineer
 
 &#34;In conclusion, leveraging a local Large Language Model (LLM) as a sidekick engineer has 
 revolutionized my workflow and productivity. By automating repetitive tasks, providing instant
@@ -107,15 +331,155 @@ language translation, and offering expert-level suggestions, my LLM sidekick has
 indispensable tool in my daily engineering routine. With its ability to learn from my 
 interactions and adapt to my specific needs, I&#39;m excited to see the continued evolution of 
 this technology and how it will further augment my skills as a software engineer.&#34;
-</code></pre><p>On a more tech subject:</p><pre tabindex=0><code>&gt; h how to copy every file ending in pdf recursively from a folder into another given directory
+</code></pre><p>On a more tech subject:</p>
+<pre tabindex="0"><code>&gt; h how to copy every file ending in pdf recursively from a folder into another given directory
 
 `find /source/folder -type f -name &#34;*.pdf&#34; -exec cp {} /destination/directory \;`
-</code></pre><p>It&rsquo;s still not as fast as chatGPT (and certainly not as good as the 4o model), but it still serves me daily !</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/lvm-resize/><span class=button__icon>←</span>
-<span class=button__text>How to resize an LVM ext4 partition (and also non-LVM because old VMs)</span>
-</a></span><span class="button next"><a href=/posts/shared-docker-registry-ci/><span class=button__text>Remote layer cache for multiple docker CI runners</span>
-<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span></a><div class=copyright><span>© 2024 Powered by
-<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
-<span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script><script src=/assets/prism.js></script></div></body></html>
+</code></pre><p>It&rsquo;s still not as fast as chatGPT (and certainly not as good as the 4o model), but it still serves me daily !</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/10x-engineer/">10x-Engineer</a></li>
+      <li><a href="/tags/llm/">Llm</a></li>
+      <li><a href="/tags/ollama/">Ollama</a></li>
+      <li><a href="/tags/ai/">Ai</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="/posts/lvm-resize/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>How to resize an LVM ext4 partition (and also non-LVM because old VMs)</span>
+  </a>
+  <a class="next" href="/posts/shared-docker-registry-ci/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Remote layer cache for multiple docker CI runners</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="/">k0rventen&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

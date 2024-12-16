@@ -1,48 +1,396 @@
-<!doctype html><html lang=en><head><title>An E-Ink watch ::
-</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="An &amp;lsquo;almost 1 month-battery-life-e-ink-display-watch&amp;rsquo; that you can build/program.
-what &amp;amp; why This summer I came across this project: https://sqfmi.com/watchy/. It&amp;rsquo;s a watch with an e-ink display, and a esp32 based platform that you can build upon. And you even have to build it yourself once it arrives in the mail ! And it&amp;rsquo;s &amp;ldquo;open source hardware and software&amp;rdquo; !
-So i ordered one, and played with it when it arrived. The websites claims you can even do OTA update to the watch faces from your phone !"><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/watchy/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="An E-Ink watch"><meta name=twitter:description content="A plastic Apple Watch with a Kindle display"><meta property="og:title" content="An E-Ink watch"><meta property="og:description" content="A plastic Apple Watch with a Kindle display"><meta property="og:type" content="article"><meta property="og:url" content="/posts/watchy/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2023-11-27T00:00:00+00:00"><meta property="article:modified_time" content="2023-11-27T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a><span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>An E-Ink watch</h1><div class=post-meta><span class=post-date>2023-11-27
-</span><span class=post-read-time>— 3 min read</span></div><span class=post-tags><a href=/tags/embedded/>#embedded</a>&nbsp;
-<a href=/tags/platformio/>#platformio</a>&nbsp;
-<a href=/tags/e-ink/>#e-ink</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#what--why>what & why</a></li><li><a href=#how>how</a></li></ul></nav></aside><p>An &lsquo;almost 1 month-battery-life-e-ink-display-watch&rsquo; that you can build/program.</p><p><img src=/watchy/watchy.jpg alt=watch></p><h1 id=what--why>what & why</h1><p>This summer I came across this project: <a href=https://sqfmi.com/watchy/>https://sqfmi.com/watchy/</a>. It&rsquo;s a watch with an e-ink display, and a esp32 based platform that you can build upon. And you even have to build it yourself once it arrives in the mail ! And it&rsquo;s &ldquo;open source hardware and software&rdquo; !</p><p>So i ordered one, and played with it when it arrived. The websites claims you can even do OTA update to the watch faces from your phone ! Disclaimer, I never managed to make this feature work. But it&rsquo;s a very cool project nonetheless.</p><p>I only need the timekeeping feature of the watch, so the additional capabilites like step counter and weather were a bit useless for my taste, so I decided to dive in the repo. The documentation is very limited, quite sparse, and the only real up-tu-date documentation source is their discord. So I cherry picked what I needed from the OG repo, fork&rsquo;d it, and made <a href=https://github.com/k0rventen/Watchy>my own</a> !</p><p>With the default code and setup, I could manage at most 6 days before the watch died. The goal was then to increase this as much as possible.</p><h1 id=how>how</h1><p>The code is completly rearchitected, and the face isn&rsquo;t decoupled from the logic anymore (as a single watch face was enough).</p><p>I then stripped every code that wasn&rsquo;t useful, disabled everything unecessary (eg the step counter). I also removed as much dependencies as possible, and switched the NTP based time sync feature with an API call to the worldtimeapi:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>if</span> (settings.timezone <span style=color:#f92672>==</span> <span style=color:#e6db74>&#34;ip&#34;</span>){
-</span></span><span style=display:flex><span>    weatherQueryURL <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;http://worldtimeapi.org/api/ip&#34;</span>;
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span><span style=color:#66d9ef>else</span>{
-</span></span><span style=display:flex><span>    weatherQueryURL<span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;http://worldtimeapi.org/api/timezone/&#34;</span> <span style=color:#f92672>+</span> settings.timezone;
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span>http.<span style=color:#a6e22e>begin</span>(weatherQueryURL.<span style=color:#a6e22e>c_str</span>());
-</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> httpResponseCode <span style=color:#f92672>=</span> http.<span style=color:#a6e22e>GET</span>();
-</span></span><span style=display:flex><span><span style=color:#66d9ef>if</span> (httpResponseCode <span style=color:#f92672>==</span> <span style=color:#ae81ff>200</span>) {
-</span></span><span style=display:flex><span>    String payload             <span style=color:#f92672>=</span> http.<span style=color:#a6e22e>getString</span>();
-</span></span><span style=display:flex><span>    JSONVar responseObject     <span style=color:#f92672>=</span> JSON.<span style=color:#a6e22e>parse</span>(payload);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>int</span> epoch <span style=color:#f92672>=</span> <span style=color:#66d9ef>int</span>(responseObject[<span style=color:#e6db74>&#34;unixtime&#34;</span>]);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>int</span> dst_offset <span style=color:#f92672>=</span> <span style=color:#66d9ef>int</span>(responseObject[<span style=color:#e6db74>&#34;dst_offset&#34;</span>]);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>int</span> tz_offset <span style=color:#f92672>=</span> <span style=color:#66d9ef>int</span>(responseObject[<span style=color:#e6db74>&#34;raw_offset&#34;</span>]);
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>int</span> local_epoch <span style=color:#f92672>=</span> epoch <span style=color:#f92672>+</span> dst_offset <span style=color:#f92672>+</span> tz_offset;
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>tmElements_t</span> tm;
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>breakTime</span>((<span style=color:#66d9ef>time_t</span>)local_epoch, tm);
-</span></span><span style=display:flex><span>    RTC.<span style=color:#a6e22e>set</span>(tm);
-</span></span><span style=display:flex><span>    ...
-</span></span></code></pre></div><p>This is even better than the NTP based one because you can specify <code>ip</code> as your timezone, and the API will guess your local zone and respond with the proper local time.</p><p>Finally I added a sleep mode that will put the watch in deepsleep between user-defined hours (eg 23:00 to 07:00). And it will even vibrate (like an Apple Watch) if you&rsquo;ve configured a wake up time:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#75715e>// vibrate if this is alarm time
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#66d9ef>if</span> (currentTime.Hour <span style=color:#f92672>==</span> settings.alarmHour <span style=color:#f92672>&amp;&amp;</span> currentTime.Minute <span style=color:#f92672>==</span> settings.alarmMinute) {
-</span></span><span style=display:flex><span><span style=color:#a6e22e>vibMotor</span>(<span style=color:#ae81ff>75</span>, <span style=color:#ae81ff>4</span>);
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e>// set sleep mode 
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#66d9ef>if</span> (currentTime.Hour <span style=color:#f92672>==</span> settings.bedTimeHour <span style=color:#f92672>&amp;&amp;</span> currentTime.Minute <span style=color:#f92672>==</span> settings.bedTimeMinute) {
-</span></span><span style=display:flex><span><span style=color:#a6e22e>showSleep</span>();
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p>All of these tweaks together bring the battery life to around 25 days, with a time sync every week. Tinkering a bit with some variables could land a whole month, eg by increasing the sleep period, or syncing the time only once when the watch is plugged in.</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/smartcity/><span class=button__icon>←</span>
-<span class=button__text>A smart city demonstrator</span>
-</a></span><span class="button next"><a href=/posts/a-pip-proxy/><span class=button__text>A PYPI cache proxy to improve our CI workflows</span>
-<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span></a><div class=copyright><span>© 2024 Powered by
-<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
-<span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script><script src=/assets/prism.js></script></div></body></html>
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>An E-Ink watch | k0rventen&#39;s blog</title>
+<meta name="keywords" content="embedded, platformio, e-ink">
+<meta name="description" content="A plastic Apple Watch with a Kindle display">
+<meta name="author" content="">
+<link rel="canonical" href="/posts/watchy/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.d6fcd20a4fb86efa4dfac8ec95da60244cc8871042183da1ef28e3a762ad79c8.css" integrity="sha256-1vzSCk&#43;4bvpN&#43;sjsldpgJEzIhxBCGD2h7yjjp2Ktecg=" rel="preload stylesheet" as="style">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="/posts/watchy/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/watchy/">
+  <meta property="og:site_name" content="k0rventen&#39;s blog">
+  <meta property="og:title" content="An E-Ink watch">
+  <meta property="og:description" content="A plastic Apple Watch with a Kindle display">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2023-11-27T00:00:00+00:00">
+    <meta property="article:modified_time" content="2023-11-27T00:00:00+00:00">
+    <meta property="article:tag" content="Embedded">
+    <meta property="article:tag" content="Platformio">
+    <meta property="article:tag" content="E-Ink">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="An E-Ink watch">
+<meta name="twitter:description" content="A plastic Apple Watch with a Kindle display">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "An E-Ink watch",
+      "item": "/posts/watchy/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "An E-Ink watch",
+  "name": "An E-Ink watch",
+  "description": "A plastic Apple Watch with a Kindle display",
+  "keywords": [
+    "embedded", "platformio", "e-ink"
+  ],
+  "articleBody": "An ‘almost 1 month-battery-life-e-ink-display-watch’ that you can build/program.\nwhat \u0026 why This summer I came across this project: https://sqfmi.com/watchy/. It’s a watch with an e-ink display, and a esp32 based platform that you can build upon. And you even have to build it yourself once it arrives in the mail ! And it’s “open source hardware and software” !\nSo i ordered one, and played with it when it arrived. The websites claims you can even do OTA update to the watch faces from your phone ! Disclaimer, I never managed to make this feature work. But it’s a very cool project nonetheless.\nI only need the timekeeping feature of the watch, so the additional capabilites like step counter and weather were a bit useless for my taste, so I decided to dive in the repo. The documentation is very limited, quite sparse, and the only real up-tu-date documentation source is their discord. So I cherry picked what I needed from the OG repo, fork’d it, and made my own !\nWith the default code and setup, I could manage at most 6 days before the watch died. The goal was then to increase this as much as possible.\nhow The code is completly rearchitected, and the face isn’t decoupled from the logic anymore (as a single watch face was enough).\nI then stripped every code that wasn’t useful, disabled everything unecessary (eg the step counter). I also removed as much dependencies as possible, and switched the NTP based time sync feature with an API call to the worldtimeapi:\nif (settings.timezone == \"ip\"){ weatherQueryURL = \"http://worldtimeapi.org/api/ip\"; } else{ weatherQueryURL= \"http://worldtimeapi.org/api/timezone/\" + settings.timezone; } http.begin(weatherQueryURL.c_str()); int httpResponseCode = http.GET(); if (httpResponseCode == 200) { String payload = http.getString(); JSONVar responseObject = JSON.parse(payload); int epoch = int(responseObject[\"unixtime\"]); int dst_offset = int(responseObject[\"dst_offset\"]); int tz_offset = int(responseObject[\"raw_offset\"]); int local_epoch = epoch + dst_offset + tz_offset; tmElements_t tm; breakTime((time_t)local_epoch, tm); RTC.set(tm); ... This is even better than the NTP based one because you can specify ip as your timezone, and the API will guess your local zone and respond with the proper local time.\nFinally I added a sleep mode that will put the watch in deepsleep between user-defined hours (eg 23:00 to 07:00). And it will even vibrate (like an Apple Watch) if you’ve configured a wake up time:\n// vibrate if this is alarm time if (currentTime.Hour == settings.alarmHour \u0026\u0026 currentTime.Minute == settings.alarmMinute) { vibMotor(75, 4); } // set sleep mode if (currentTime.Hour == settings.bedTimeHour \u0026\u0026 currentTime.Minute == settings.bedTimeMinute) { showSleep(); } All of these tweaks together bring the battery life to around 25 days, with a time sync every week. Tinkering a bit with some variables could land a whole month, eg by increasing the sleep period, or syncing the time only once when the watch is plugged in.\n",
+  "wordCount" : "467",
+  "inLanguage": "en",
+  "datePublished": "2023-11-27T00:00:00Z",
+  "dateModified": "2023-11-27T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/watchy/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "k0rventen's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="/" accesskey="h" title="&gt; k0rventen: ~ (Alt + H)">&gt; k0rventen: ~</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/links" title="links">
+                    <span>links</span>
+                </a>
+            </li>
+            <li>
+                <a href="/posts" title="posts">
+                    <span>posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="/search" title="search (Alt &#43; /)" accesskey=/>
+                    <span>search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="/">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      An E-Ink watch
+    </h1>
+    <div class="post-description">
+      A plastic Apple Watch with a Kindle display
+    </div>
+    <div class="post-meta"><span title='2023-11-27 00:00:00 +0000 UTC'>November 27, 2023</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;467 words
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents"></nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>An &lsquo;almost 1 month-battery-life-e-ink-display-watch&rsquo; that you can build/program.</p>
+<p><img alt="watch" loading="lazy" src="/watchy/watchy.jpg"></p>
+<h1 id="what--why">what &amp; why<a hidden class="anchor" aria-hidden="true" href="#what--why">#</a></h1>
+<p>This summer I came across this project: <a href="https://sqfmi.com/watchy/">https://sqfmi.com/watchy/</a>. It&rsquo;s a watch with an e-ink display, and a esp32 based platform that you can build upon. And you even have to build it yourself once it arrives in the mail ! And it&rsquo;s &ldquo;open source hardware and software&rdquo; !</p>
+<p>So i ordered one, and played with it when it arrived. The websites claims you can even do OTA update to the watch faces from your phone ! Disclaimer, I never managed to make this feature work. But it&rsquo;s a very cool project nonetheless.</p>
+<p>I only need the timekeeping feature of the watch, so the additional capabilites like step counter and weather were a bit useless for my taste, so I decided to dive in the repo. The documentation is very limited, quite sparse, and the only real up-tu-date documentation source is their discord. So I cherry picked what I needed from the OG repo, fork&rsquo;d it, and made <a href="https://github.com/k0rventen/Watchy">my own</a> !</p>
+<p>With the default code and setup, I could manage at most 6 days before the watch died. The goal was then to increase this as much as possible.</p>
+<h1 id="how">how<a hidden class="anchor" aria-hidden="true" href="#how">#</a></h1>
+<p>The code is completly rearchitected, and the face isn&rsquo;t decoupled from the logic anymore (as a single watch face was enough).</p>
+<p>I then stripped every code that wasn&rsquo;t useful, disabled everything unecessary (eg the step counter). I also removed as much dependencies as possible, and switched the NTP based time sync feature with an API call to the worldtimeapi:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="n">settings</span><span class="p">.</span><span class="n">timezone</span> <span class="o">==</span> <span class="s">&#34;ip&#34;</span><span class="p">){</span>
+</span></span><span class="line"><span class="cl">    <span class="n">weatherQueryURL</span> <span class="o">=</span> <span class="s">&#34;http://worldtimeapi.org/api/ip&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">else</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">weatherQueryURL</span><span class="o">=</span> <span class="s">&#34;http://worldtimeapi.org/api/timezone/&#34;</span> <span class="o">+</span> <span class="n">settings</span><span class="p">.</span><span class="n">timezone</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">http</span><span class="p">.</span><span class="nf">begin</span><span class="p">(</span><span class="n">weatherQueryURL</span><span class="p">.</span><span class="nf">c_str</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">httpResponseCode</span> <span class="o">=</span> <span class="n">http</span><span class="p">.</span><span class="nf">GET</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="n">httpResponseCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">String</span> <span class="n">payload</span>             <span class="o">=</span> <span class="n">http</span><span class="p">.</span><span class="nf">getString</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">JSONVar</span> <span class="n">responseObject</span>     <span class="o">=</span> <span class="n">JSON</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">payload</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">epoch</span> <span class="o">=</span> <span class="kt">int</span><span class="p">(</span><span class="n">responseObject</span><span class="p">[</span><span class="s">&#34;unixtime&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">dst_offset</span> <span class="o">=</span> <span class="kt">int</span><span class="p">(</span><span class="n">responseObject</span><span class="p">[</span><span class="s">&#34;dst_offset&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">tz_offset</span> <span class="o">=</span> <span class="kt">int</span><span class="p">(</span><span class="n">responseObject</span><span class="p">[</span><span class="s">&#34;raw_offset&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">local_epoch</span> <span class="o">=</span> <span class="n">epoch</span> <span class="o">+</span> <span class="n">dst_offset</span> <span class="o">+</span> <span class="n">tz_offset</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kt">tmElements_t</span> <span class="n">tm</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">breakTime</span><span class="p">((</span><span class="kt">time_t</span><span class="p">)</span><span class="n">local_epoch</span><span class="p">,</span> <span class="n">tm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">RTC</span><span class="p">.</span><span class="nf">set</span><span class="p">(</span><span class="n">tm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">...</span>
+</span></span></code></pre></div><p>This is even better than the NTP based one because you can specify <code>ip</code> as your timezone, and the API will guess your local zone and respond with the proper local time.</p>
+<p>Finally I added a sleep mode that will put the watch in deepsleep between user-defined hours (eg 23:00 to 07:00). And it will even vibrate (like an Apple Watch) if you&rsquo;ve configured a wake up time:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// vibrate if this is alarm time
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">if</span> <span class="p">(</span><span class="n">currentTime</span><span class="p">.</span><span class="n">Hour</span> <span class="o">==</span> <span class="n">settings</span><span class="p">.</span><span class="n">alarmHour</span> <span class="o">&amp;&amp;</span> <span class="n">currentTime</span><span class="p">.</span><span class="n">Minute</span> <span class="o">==</span> <span class="n">settings</span><span class="p">.</span><span class="n">alarmMinute</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="nf">vibMotor</span><span class="p">(</span><span class="mi">75</span><span class="p">,</span> <span class="mi">4</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// set sleep mode 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">if</span> <span class="p">(</span><span class="n">currentTime</span><span class="p">.</span><span class="n">Hour</span> <span class="o">==</span> <span class="n">settings</span><span class="p">.</span><span class="n">bedTimeHour</span> <span class="o">&amp;&amp;</span> <span class="n">currentTime</span><span class="p">.</span><span class="n">Minute</span> <span class="o">==</span> <span class="n">settings</span><span class="p">.</span><span class="n">bedTimeMinute</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="nf">showSleep</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>All of these tweaks together bring the battery life to around 25 days, with a time sync every week. Tinkering a bit with some variables could land a whole month, eg by increasing the sleep period, or syncing the time only once when the watch is plugged in.</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/embedded/">Embedded</a></li>
+      <li><a href="/tags/platformio/">Platformio</a></li>
+      <li><a href="/tags/e-ink/">E-Ink</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="/posts/smartcity/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>A smart city demonstrator</span>
+  </a>
+  <a class="next" href="/posts/a-pip-proxy/">
+    <span class="title">Next »</span>
+    <br>
+    <span>A PYPI cache proxy to improve our CI workflows</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="/">k0rventen&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

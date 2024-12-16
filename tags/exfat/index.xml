@@ -1,2 +1,19 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>exfat on</title><link>/tags/exfat/</link><description>Recent content in exfat on</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Mon, 24 Jun 2024 00:00:00 +0000</lastBuildDate><atom:link href="/tags/exfat/index.xml" rel="self" type="application/rss+xml"/><item><title>Randomized Tesla Lock Sounds using a Pi</title><link>/posts/tesla-lock-sounds/</link><pubDate>Mon, 24 Jun 2024 00:00:00 +0000</pubDate><guid>/posts/tesla-lock-sounds/</guid><description>
-A different lock sound every time</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Exfat on k0rventen&#39;s blog</title>
+    <link>/tags/exfat/</link>
+    <description>Recent content in Exfat on k0rventen&#39;s blog</description>
+    <generator>Hugo -- 0.139.0</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 24 Jun 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="/tags/exfat/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Randomized Tesla Lock Sounds using a Pi</title>
+      <link>/posts/tesla-lock-sounds/</link>
+      <pubDate>Mon, 24 Jun 2024 00:00:00 +0000</pubDate>
+      <guid>/posts/tesla-lock-sounds/</guid>
+      <description>A different lock sound every time</description>
+    </item>
+  </channel>
+</rss>

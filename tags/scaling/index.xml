@@ -1,3 +1,26 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>scaling on</title><link>/tags/scaling/</link><description>Recent content in scaling on</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="/tags/scaling/index.xml" rel="self" type="application/rss+xml"/><item><title>Autoscaling using KEDA</title><link>/posts/keda-autoscaling/</link><pubDate>Mon, 16 May 2022 00:00:00 +0000</pubDate><guid>/posts/keda-autoscaling/</guid><description>
-Scale workloads based on a rabbitMQ queue's metrics</description></item><item><title>Exploring Kube's Horizontal Pod Autoscaler</title><link>/posts/kube-hpa/</link><pubDate>Tue, 27 Jul 2021 00:00:00 +0000</pubDate><guid>/posts/kube-hpa/</guid><description>
-scale your microservices based on CPU usage</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Scaling on k0rventen&#39;s blog</title>
+    <link>/tags/scaling/</link>
+    <description>Recent content in Scaling on k0rventen&#39;s blog</description>
+    <generator>Hugo -- 0.139.0</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate>
+    <atom:link href="/tags/scaling/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Autoscaling using KEDA</title>
+      <link>/posts/keda-autoscaling/</link>
+      <pubDate>Mon, 16 May 2022 00:00:00 +0000</pubDate>
+      <guid>/posts/keda-autoscaling/</guid>
+      <description>Scale workloads based on a rabbitMQ queue&amp;#39;s metrics</description>
+    </item>
+    <item>
+      <title>Exploring Kube&#39;s Horizontal Pod Autoscaler</title>
+      <link>/posts/kube-hpa/</link>
+      <pubDate>Tue, 27 Jul 2021 00:00:00 +0000</pubDate>
+      <guid>/posts/kube-hpa/</guid>
+      <description>scale your microservices based on CPU usage</description>
+    </item>
+  </channel>
+</rss>

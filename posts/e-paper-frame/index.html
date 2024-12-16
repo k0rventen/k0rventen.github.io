@@ -1,85 +1,520 @@
-<!doctype html><html lang=en><head><title>E Ink Message frame ::
-</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="Transmit paper-like messages from 18000 kms away:
-A simple, e-ink display that receives messages from loved ones from the other side of the globe.
-why About 10 months ago, my sister left our country to do a WHP (Work-Holiday-Program) on the other side of the world (fun fact, this is almost true as the antipodes of France where we live is right next to New-Zealand, where my sister went).
-Going far today isn&amp;rsquo;t as bad as it would have been decades ago, we have messages, video calling and other new mediums that can bring people closer together even far away."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/e-paper-frame/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="E Ink Message frame"><meta name=twitter:description content="Transmit paper-like messages from 18000 kms away"><meta property="og:title" content="E Ink Message frame"><meta property="og:description" content="Transmit paper-like messages from 18000 kms away"><meta property="og:type" content="article"><meta property="og:url" content="/posts/e-paper-frame/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2024-05-27T00:00:00+00:00"><meta property="article:modified_time" content="2024-05-27T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a><span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>E Ink Message frame</h1><div class=post-meta><span class=post-date>2024-05-27
-</span><span class=post-read-time>— 7 min read</span></div><span class=post-tags><a href=/tags/raspberrypi/>#raspberrypi</a>&nbsp;
-<a href=/tags/e-ink/>#e-ink</a>&nbsp;
-<a href=/tags/tailscale/>#tailscale</a>&nbsp;
-<a href=/tags/python/>#python</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#why>why</a></li><li><a href=#how>how</a><ul><li><a href=#the-box>The box</a></li><li><a href=#the-software>the software</a><ul><li><a href=#the-frontend>the frontend</a></li><li><a href=#the-server>the server</a></li><li><a href=#the-network>the network</a></li><li><a href=#the-display>the display</a></li></ul></li></ul></li><li><a href=#how-it-turned-out>how it turned out</a></li></ul></nav></aside><p>Transmit paper-like messages from 18000 kms away:</p><p>A simple, e-ink display that receives messages from loved ones from the other side of the globe.</p><p><img src=/e-paper-display/result.png alt></p><h1 id=why>why</h1><p>About 10 months ago, my sister left our country to do a WHP (Work-Holiday-Program) on the other side of the world (fun fact, this is almost true as the antipodes of France where we live is right next to New-Zealand, where my sister went).</p><p>Going far today isn&rsquo;t as bad as it would have been decades ago, we have messages, video calling and other new mediums that can bring people closer together even far away. This was important for all of us to still be able to connect, but I guess even more for my parents. So a few months in, I decided to create something different for them to know what she was up to, without needing their phones.</p><p>The idea came after seeing the <a href=https://www.kickstarter.com/projects/genmon/poem-1-the-ai-poetry-clock>Poem 1 concept</a>, which is a &lsquo;clock&rsquo;, powered by ChatGPT and using a e-ink display. I I thought to myself that this form-factor and display could be a nice way of displaying messages from my sister. They wouldn&rsquo;t diseappear, always readable from anywhere in a room.</p><p>So the goal was set: My sister would be able to send messages to the e-ink box at my parent&rsquo;s, which would display them on the e-ink screen. How hard could it be ?</p><h1 id=how>how</h1><p>This project is made of various pieces:</p><ul><li>the physical &lsquo;box&rsquo; that will be at my parent&rsquo;s, receiving messages from a server and displaying them</li><li>a server, that will let clients send messages through a simple front end</li><li>a way for clients to connect to the server from anywhere in the world</li></ul><h2 id=the-box>The box</h2><p>The first order of business was to find an E-ink display that would fit my requirements. I settled on a 4.2" unit from Waveshare: <a href=https://www.waveshare.com/4.2inch-e-paper-module.htm>https://www.waveshare.com/4.2inch-e-paper-module.htm</a></p><p>The SPI interface would be controlled through a Raspberry Pi Zero W.</p><p>I then designed a 3D printed case that would fit the two components. As I don&rsquo;t know anything about CAD design tools, I fiddled with Tinkercad until I had something that was both printable and not too ugly (I discovered why beveled and rounded edges are everywhere after printing my first &lsquo;cubic&rsquo; version).</p><p><img src=/e-paper-display/frame.png alt></p><p>I then &lsquo;assembled&rsquo; everything:</p><ul><li>soldered the wires from the display PCB to the pi W,</li><li>fitted the display and pi inside the box (read double sided tape and hot glue)</li></ul><p>Here is what it looks like inside:</p><p><img src=/e-paper-display/inside-box.jpeg alt></p><p>After some sanding of the exterior of the box, it has quite a nice finish to it and looks decent enough:</p><video class=video-shortcode preload=auto controls autoplay>
-<source src=/e-paper-display/box.mp4 type=video/mp4>There should have been a video here but your browser does not seem to support it.</video><p>Now that we have a working physical thing, onto the software !</p><h2 id=the-software>the software</h2><p>There&rsquo;s multiple facets to consider:</p><ul><li>clients that should be able to send messages easily to a server</li><li>the server that would store the messages (and pictures, because I decided mid-project that sending pictures to the display would be fun)</li><li>the logic to display nicely the message and when it was sent on the display.</li></ul><h3 id=the-frontend>the frontend</h3><p>The first part was a nice challenge. I&rsquo;m not a frontend engineer, and have very limited design abilities (as seen previously on the box&rsquo;s design).
-I decided that the frontend would be entirely developed (ie the code) by chatGPT. I wanted to see if it was possible to create the whole frontend design and logic using only AI. The features of the frontend would be as follows:</p><ul><li>authenticate using basic auth</li><li>a simple form to send a new message/image</li><li>display the list of previouly sent messages</li></ul><p>Here is the first message of a long conversation between me and chatGPT:</p><p><img src=/e-paper-display/chatgpt.png alt></p><p>We then refined the UI, implemented the various features (when I say we, I mean I expressed what I wanted, or wrote feedback on the previous iteration).</p><p>Here is a quick list of features that chatGPT implemented on its own:</p><ul><li>all the design, including the nice background gradient</li><li>handling the requests to the backend server</li><li>displaying the previous messages from a GET endpoint</li><li>Adding support for uploading images</li><li>the little character counter next to the input</li></ul><p>The only feature that it wasn&rsquo;t able to code properly is the button for removing the selected image.</p><p>Finally, here is what the UI looks like on a phone :</p><p><img src=/e-paper-display/screen.png alt></p><p>I would say that 95% of the code was written by gpt, and a few tweaks and corrections by me.
-Obviously it&rsquo;s quite a simple use-case, but it delivered something I would have spent 3 weeks dealing with CSS centering.</p><p>10/10 experience.</p><h3 id=the-server>the server</h3><p>So this frontend talks to a python backend. Nothing fancy. The data is stored using tinyDB, as an array:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-json data-lang=json><span style=display:flex><span>    <span style=color:#e6db74>&#34;32&#34;</span><span style=color:#960050;background-color:#1e0010>:</span> {
-</span></span><span style=display:flex><span>      <span style=color:#f92672>&#34;timestamp&#34;</span>: <span style=color:#ae81ff>1711017153</span>,
-</span></span><span style=display:flex><span>      <span style=color:#f92672>&#34;user&#34;</span>: <span style=color:#e6db74>&#34;mel&#34;</span>,
-</span></span><span style=display:flex><span>      <span style=color:#f92672>&#34;display&#34;</span>: <span style=color:#e6db74>&#34;8b74c00a-1093-41da-89ad-a17aabcbbf98&#34;</span>,
-</span></span><span style=display:flex><span>      <span style=color:#f92672>&#34;message&#34;</span>: <span style=color:#e6db74>&#34;\u00e7a apprend \u00e0 surfer par ici \ud83c\udfc4\u200d\u2640\ufe0f&#34;</span>
-</span></span><span style=display:flex><span>    }<span style=color:#960050;background-color:#1e0010>,</span>
-</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;33&#34;</span><span style=color:#960050;background-color:#1e0010>:</span> {
-</span></span><span style=display:flex><span>      <span style=color:#f92672>&#34;timestamp&#34;</span>: <span style=color:#ae81ff>1711513109</span>,
-</span></span><span style=display:flex><span>      <span style=color:#f92672>&#34;user&#34;</span>: <span style=color:#e6db74>&#34;mel&#34;</span>,
-</span></span><span style=display:flex><span>      <span style=color:#f92672>&#34;display&#34;</span>: <span style=color:#e6db74>&#34;8b74c00a-1093-41da-89ad-a17aabcbbf98&#34;</span>,
-</span></span><span style=display:flex><span>      <span style=color:#f92672>&#34;message&#34;</span>: <span style=color:#e6db74>&#34;jour 190 - je quitte Mirissa et retourne \u00e0 Weligama! \ud83c\udf0a&#34;</span>
-</span></span><span style=display:flex><span>    }
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>E Ink Message frame | k0rventen&#39;s blog</title>
+<meta name="keywords" content="raspberrypi, e-ink, tailscale, python">
+<meta name="description" content="Transmit paper-like messages from 18000 kms away">
+<meta name="author" content="">
+<link rel="canonical" href="/posts/e-paper-frame/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.d6fcd20a4fb86efa4dfac8ec95da60244cc8871042183da1ef28e3a762ad79c8.css" integrity="sha256-1vzSCk&#43;4bvpN&#43;sjsldpgJEzIhxBCGD2h7yjjp2Ktecg=" rel="preload stylesheet" as="style">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="/posts/e-paper-frame/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/e-paper-frame/">
+  <meta property="og:site_name" content="k0rventen&#39;s blog">
+  <meta property="og:title" content="E Ink Message frame">
+  <meta property="og:description" content="Transmit paper-like messages from 18000 kms away">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-05-27T00:00:00+00:00">
+    <meta property="article:modified_time" content="2024-05-27T00:00:00+00:00">
+    <meta property="article:tag" content="Raspberrypi">
+    <meta property="article:tag" content="E-Ink">
+    <meta property="article:tag" content="Tailscale">
+    <meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="E Ink Message frame">
+<meta name="twitter:description" content="Transmit paper-like messages from 18000 kms away">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "E Ink Message frame",
+      "item": "/posts/e-paper-frame/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "E Ink Message frame",
+  "name": "E Ink Message frame",
+  "description": "Transmit paper-like messages from 18000 kms away",
+  "keywords": [
+    "raspberrypi", "e-ink", "tailscale", "python"
+  ],
+  "articleBody": "Transmit paper-like messages from 18000 kms away:\nA simple, e-ink display that receives messages from loved ones from the other side of the globe.\nwhy About 10 months ago, my sister left our country to do a WHP (Work-Holiday-Program) on the other side of the world (fun fact, this is almost true as the antipodes of France where we live is right next to New-Zealand, where my sister went).\nGoing far today isn’t as bad as it would have been decades ago, we have messages, video calling and other new mediums that can bring people closer together even far away. This was important for all of us to still be able to connect, but I guess even more for my parents. So a few months in, I decided to create something different for them to know what she was up to, without needing their phones.\nThe idea came after seeing the Poem 1 concept, which is a ‘clock’, powered by ChatGPT and using a e-ink display. I I thought to myself that this form-factor and display could be a nice way of displaying messages from my sister. They wouldn’t diseappear, always readable from anywhere in a room.\nSo the goal was set: My sister would be able to send messages to the e-ink box at my parent’s, which would display them on the e-ink screen. How hard could it be ?\nhow This project is made of various pieces:\nthe physical ‘box’ that will be at my parent’s, receiving messages from a server and displaying them a server, that will let clients send messages through a simple front end a way for clients to connect to the server from anywhere in the world The box The first order of business was to find an E-ink display that would fit my requirements. I settled on a 4.2\" unit from Waveshare: https://www.waveshare.com/4.2inch-e-paper-module.htm\nThe SPI interface would be controlled through a Raspberry Pi Zero W.\nI then designed a 3D printed case that would fit the two components. As I don’t know anything about CAD design tools, I fiddled with Tinkercad until I had something that was both printable and not too ugly (I discovered why beveled and rounded edges are everywhere after printing my first ‘cubic’ version).\nI then ‘assembled’ everything:\nsoldered the wires from the display PCB to the pi W, fitted the display and pi inside the box (read double sided tape and hot glue) Here is what it looks like inside:\nAfter some sanding of the exterior of the box, it has quite a nice finish to it and looks decent enough:\nThere should have been a video here but your browser does not seem to support it. Now that we have a working physical thing, onto the software !\nthe software There’s multiple facets to consider:\nclients that should be able to send messages easily to a server the server that would store the messages (and pictures, because I decided mid-project that sending pictures to the display would be fun) the logic to display nicely the message and when it was sent on the display. the frontend The first part was a nice challenge. I’m not a frontend engineer, and have very limited design abilities (as seen previously on the box’s design). I decided that the frontend would be entirely developed (ie the code) by chatGPT. I wanted to see if it was possible to create the whole frontend design and logic using only AI. The features of the frontend would be as follows:\nauthenticate using basic auth a simple form to send a new message/image display the list of previouly sent messages Here is the first message of a long conversation between me and chatGPT:\nWe then refined the UI, implemented the various features (when I say we, I mean I expressed what I wanted, or wrote feedback on the previous iteration).\nHere is a quick list of features that chatGPT implemented on its own:\nall the design, including the nice background gradient handling the requests to the backend server displaying the previous messages from a GET endpoint Adding support for uploading images the little character counter next to the input The only feature that it wasn’t able to code properly is the button for removing the selected image.\nFinally, here is what the UI looks like on a phone :\nI would say that 95% of the code was written by gpt, and a few tweaks and corrections by me. Obviously it’s quite a simple use-case, but it delivered something I would have spent 3 weeks dealing with CSS centering.\n10/10 experience.\nthe server So this frontend talks to a python backend. Nothing fancy. The data is stored using tinyDB, as an array:\n\"32\": { \"timestamp\": 1711017153, \"user\": \"mel\", \"display\": \"8b74c00a-1093-41da-89ad-a17aabcbbf98\", \"message\": \"\\u00e7a apprend \\u00e0 surfer par ici \\ud83c\\udfc4\\u200d\\u2640\\ufe0f\" }, \"33\": { \"timestamp\": 1711513109, \"user\": \"mel\", \"display\": \"8b74c00a-1093-41da-89ad-a17aabcbbf98\", \"message\": \"jour 190 - je quitte Mirissa et retourne \\u00e0 Weligama! \\ud83c\\udf0a\" } Creating a new message is a POST request. We grab the username, timestamp, message/image, create a UUID for the image and stores it locally. The convert/thumbnail is here to format the image to be then displayed on the e-ink screen. You can imagine the GET endpoint for the display, it’s simply returning the last entry of the messages.\n@api.post(\"/messages\") async def new_message(resp: Response,request:Request,user= Depends(auth_check)): form = await request.form() msg = {\"timestamp\":int(time()),\"user\":user} if img := form.get(\"image\"): im = Image.open(BytesIO(img.file.read())) image = im.convert(\"L\") image.thumbnail((368,200)) im_uuid = str(uuid4()) image.save(f\"./static/imgs/{im_uuid}.jpg\") msg[\"image\"] = im_uuid msg[\"message\"] = \"image\" if message := form.get(\"message\"): msg[\"message\"] = message messages.insert(msg) return \"ok\" the network Ok so we have clients, a server, and a display, all on different part of the world. The clients are roaming (mainly my sister across the globe), the server is on my rasberry pi at home, and the display is at my parent’s. I almost went the cloud way, with a hosted, public server, but that would mean spending time to enhance the app’s security, setting up proper auth, etc etc. Quite a hassle for this. So I decided to put tailscale to the test. It’s a mesh VPN that allows peers to connect to each other directly using p2p tunnels.\nAll of the clients would have tailscale installed, configured to be on my tailnet, and rules configured to that my sister’s phone and the display could talk to the server. Each of them have a static IP in this subnet\nThis would then look like this:\nNow, both my sister’s phone and the display can access the frontend exposed by my server, without having to expose it publicly. My sister ‘only’ have to remember to turn on the VPN whenever she wants to send a message.\nthe display On the display side, it’s a simple while loop:\nfetch the API for the latest message sleep like 10 minutes Again, nothing fancy. Doesn’t matter if the message isn’t received instantaneously:\nThe library for controlling the actual display (https://github.com/waveshareteam/e-Paper) is quite well made. But for some reason the packaging was broken, so I downloaded the package and included it like this waveshare-epaper @ file:///app/waveshare_epaper-1.3.0-py3-none-any.whl in my requirements.\nAnother hurdle I encountered was figuring out how to wrap properly the message if it was too long for a single line. But that has more to do with the font that I used being clearly not monospaced. Fiddling around with arbitrary values to find the exact number of pixels are needed to space things around is always fun !\nWhat’s interesting here it that the lib is Pillow based, meaning you construct your image then sends it to the display:\n(you can see my experiment with dark/light mode)\ndef refresh_display(user=\"\",date=\"\",content=None,dark_theme=False): bg_color = 0 if dark_theme else 255 color = 255 if dark_theme else 0 Limage = Image.new('1', (epd.width,epd.height), bg_color) draw = ImageDraw.Draw(Limage) epd.display_Partial(epd.getbuffer(Limage)) # blank bg draw.rectangle((0, 0, epd.width,epd.height), fill = bg_color) # from draw.text((12, 20), user, font = font_35,fill = color) draw.text((12,50),date,font = font_35, fill = color) if isinstance(content,Image.Image): img_w, _ = content.size img_x = int((400 - img_w)/2) Limage.paste(content, (img_x,100)) elif isinstance(content,str): # message line_start_y,line_height = 120,40 lines = textwrap.wrap(content, 18,max_lines=4) for i,l in enumerate(lines): draw.text((12, line_start_y+i*line_height), l, font = font_50, fill = color) epd.display_Partial(epd.getbuffer(Limage)) I played around with various refreshes, because e-ink displays can partially refresh (change only the pixels that changed) or a full (clearing the screen in-between). The partial is quicker, but overtime ghosts of previous images can be visible. So a full refresh is done once in a while.\nFor the date on top the messages, I used the humanize lib to convert epoch timestamps to human-friendly format in French.\nhow it turned out Again, here is the final result:\nQuite pleased with this one. Mixing hardware and software always hits different, and ‘seeing’ messages being sent literaly across the globe has a very satisfying taste to it.\n",
+  "wordCount" : "1469",
+  "inLanguage": "en",
+  "datePublished": "2024-05-27T00:00:00Z",
+  "dateModified": "2024-05-27T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/e-paper-frame/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "k0rventen's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="/" accesskey="h" title="&gt; k0rventen: ~ (Alt + H)">&gt; k0rventen: ~</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/links" title="links">
+                    <span>links</span>
+                </a>
+            </li>
+            <li>
+                <a href="/posts" title="posts">
+                    <span>posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="/search" title="search (Alt &#43; /)" accesskey=/>
+                    <span>search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="/">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      E Ink Message frame
+    </h1>
+    <div class="post-description">
+      Transmit paper-like messages from 18000 kms away
+    </div>
+    <div class="post-meta"><span title='2024-05-27 00:00:00 +0000 UTC'>May 27, 2024</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;1469 words
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-box">The box</a></li>
+    <li><a href="#the-software">the software</a>
+      <ul>
+        <li><a href="#the-frontend">the frontend</a></li>
+        <li><a href="#the-server">the server</a></li>
+        <li><a href="#the-network">the network</a></li>
+        <li><a href="#the-display">the display</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>Transmit paper-like messages from 18000 kms away:</p>
+<p>A simple, e-ink display that receives messages from loved ones from the other side of the globe.</p>
+<p><img loading="lazy" src="/e-paper-display/result.png"></p>
+<h1 id="why">why<a hidden class="anchor" aria-hidden="true" href="#why">#</a></h1>
+<p>About 10 months ago, my sister left our country to do a WHP (Work-Holiday-Program) on the other side of the world (fun fact, this is almost true as the antipodes of France where we live is right next to New-Zealand, where my sister went).</p>
+<p>Going far today isn&rsquo;t as bad as it would have been decades ago, we have messages, video calling and other new mediums that can bring people closer together even far away. This was important for all of us to still be able to connect, but I guess even more for my parents. So a few months in, I decided to create something different for them to know what she was up to, without needing their phones.</p>
+<p>The idea came after seeing the <a href="https://www.kickstarter.com/projects/genmon/poem-1-the-ai-poetry-clock">Poem 1 concept</a>, which is a &lsquo;clock&rsquo;, powered by ChatGPT and using a e-ink display. I I thought to myself that this form-factor and display could be a nice way of displaying messages from my sister. They wouldn&rsquo;t diseappear, always readable from anywhere in a room.</p>
+<p>So the goal was set: My sister would be able to send messages to the e-ink box at my parent&rsquo;s, which would display them on the e-ink screen. How hard could it be ?</p>
+<h1 id="how">how<a hidden class="anchor" aria-hidden="true" href="#how">#</a></h1>
+<p>This project is made of various pieces:</p>
+<ul>
+<li>the physical &lsquo;box&rsquo; that will be at my parent&rsquo;s, receiving messages from a server and displaying them</li>
+<li>a server, that will let clients send messages through a simple front end</li>
+<li>a way for clients to connect to the server from anywhere in the world</li>
+</ul>
+<h2 id="the-box">The box<a hidden class="anchor" aria-hidden="true" href="#the-box">#</a></h2>
+<p>The first order of business was to find an E-ink display that would fit my requirements. I settled on a 4.2&quot; unit from Waveshare: <a href="https://www.waveshare.com/4.2inch-e-paper-module.htm">https://www.waveshare.com/4.2inch-e-paper-module.htm</a></p>
+<p>The SPI interface would be controlled through a Raspberry Pi Zero W.</p>
+<p>I then designed a 3D printed case that would fit the two components. As I don&rsquo;t know anything about CAD design tools, I fiddled with Tinkercad until I had something that was both printable and not too ugly (I discovered why beveled and rounded edges are everywhere after printing my first &lsquo;cubic&rsquo; version).</p>
+<p><img loading="lazy" src="/e-paper-display/frame.png"></p>
+<p>I then &lsquo;assembled&rsquo; everything:</p>
+<ul>
+<li>soldered the wires from the display PCB to the pi W,</li>
+<li>fitted the display and pi inside the box (read double sided tape and hot glue)</li>
+</ul>
+<p>Here is what it looks like inside:</p>
+<p><img loading="lazy" src="/e-paper-display/inside-box.jpeg"></p>
+<p>After some sanding of the exterior of the box, it has quite a nice finish to it and looks decent enough:</p>
+<video class="video-shortcode" preload="auto" controls autoplay width="100%">
+  <source src="/e-paper-display/box.mp4" type="video/mp4">
+  There should have been a video here but your browser does not seem to support it.
+</video>
+<p>Now that we have a working physical thing, onto the software !</p>
+<h2 id="the-software">the software<a hidden class="anchor" aria-hidden="true" href="#the-software">#</a></h2>
+<p>There&rsquo;s multiple facets to consider:</p>
+<ul>
+<li>clients that should be able to send messages easily to a server</li>
+<li>the server that would store the messages (and pictures, because I decided mid-project that sending pictures to the display would be fun)</li>
+<li>the logic to display nicely the message and when it was sent on the display.</li>
+</ul>
+<h3 id="the-frontend">the frontend<a hidden class="anchor" aria-hidden="true" href="#the-frontend">#</a></h3>
+<p>The first part was a nice challenge. I&rsquo;m not a frontend engineer, and have very limited design abilities (as seen previously on the box&rsquo;s design).
+I decided that the frontend would be entirely developed (ie the code) by chatGPT. I wanted to see if it was possible to create the whole frontend design and logic using only AI. The features of the frontend would be as follows:</p>
+<ul>
+<li>authenticate using basic auth</li>
+<li>a simple form to send a new message/image</li>
+<li>display the list of previouly sent messages</li>
+</ul>
+<p>Here is the first message of a long conversation between me and chatGPT:</p>
+<p><img loading="lazy" src="/e-paper-display/chatgpt.png"></p>
+<p>We then refined the UI, implemented the various features (when I say we, I mean I expressed what I wanted, or wrote feedback on the previous iteration).</p>
+<p>Here is a quick list of features that chatGPT implemented on its own:</p>
+<ul>
+<li>all the design, including the nice background gradient</li>
+<li>handling the requests to the backend server</li>
+<li>displaying the previous messages from a GET endpoint</li>
+<li>Adding support for uploading images</li>
+<li>the little character counter next to the input</li>
+</ul>
+<p>The only feature that it wasn&rsquo;t able to code properly is the button for removing the selected image.</p>
+<p>Finally, here is what the UI looks like on a phone :</p>
+<p><img loading="lazy" src="/e-paper-display/screen.png"></p>
+<p>I would say that 95% of the code was written by gpt, and a few tweaks and corrections by me.
+Obviously it&rsquo;s quite a simple use-case, but it delivered something I would have spent 3 weeks dealing with CSS centering.</p>
+<p>10/10 experience.</p>
+<h3 id="the-server">the server<a hidden class="anchor" aria-hidden="true" href="#the-server">#</a></h3>
+<p>So this frontend talks to a python backend. Nothing fancy. The data is stored using tinyDB, as an array:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl">    <span class="s2">&#34;32&#34;</span><span class="err">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;timestamp&#34;</span><span class="p">:</span> <span class="mi">1711017153</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;user&#34;</span><span class="p">:</span> <span class="s2">&#34;mel&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;display&#34;</span><span class="p">:</span> <span class="s2">&#34;8b74c00a-1093-41da-89ad-a17aabcbbf98&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;message&#34;</span><span class="p">:</span> <span class="s2">&#34;\u00e7a apprend \u00e0 surfer par ici \ud83c\udfc4\u200d\u2640\ufe0f&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span><span class="err">,</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;33&#34;</span><span class="err">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;timestamp&#34;</span><span class="p">:</span> <span class="mi">1711513109</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;user&#34;</span><span class="p">:</span> <span class="s2">&#34;mel&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;display&#34;</span><span class="p">:</span> <span class="s2">&#34;8b74c00a-1093-41da-89ad-a17aabcbbf98&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;message&#34;</span><span class="p">:</span> <span class="s2">&#34;jour 190 - je quitte Mirissa et retourne \u00e0 Weligama! \ud83c\udf0a&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span></code></pre></div><p>Creating a new message is a POST request.
 We grab the username, timestamp, message/image, create a UUID for the image and stores it locally.
 The convert/thumbnail is here to format the image to be then displayed on the e-ink screen.
-You can imagine the GET endpoint for the display, it&rsquo;s simply returning the last entry of the messages.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#a6e22e>@api.post</span>(<span style=color:#e6db74>&#34;/messages&#34;</span>)
-</span></span><span style=display:flex><span><span style=color:#66d9ef>async</span> <span style=color:#66d9ef>def</span> <span style=color:#a6e22e>new_message</span>(resp: Response,request:Request,user<span style=color:#f92672>=</span> Depends(auth_check)):
-</span></span><span style=display:flex><span>    form <span style=color:#f92672>=</span> <span style=color:#66d9ef>await</span> request<span style=color:#f92672>.</span>form()
-</span></span><span style=display:flex><span>    msg <span style=color:#f92672>=</span> {<span style=color:#e6db74>&#34;timestamp&#34;</span>:int(time()),<span style=color:#e6db74>&#34;user&#34;</span>:user}
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> img <span style=color:#f92672>:=</span> form<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#34;image&#34;</span>):
-</span></span><span style=display:flex><span>        im <span style=color:#f92672>=</span> Image<span style=color:#f92672>.</span>open(BytesIO(img<span style=color:#f92672>.</span>file<span style=color:#f92672>.</span>read()))
-</span></span><span style=display:flex><span>        image <span style=color:#f92672>=</span> im<span style=color:#f92672>.</span>convert(<span style=color:#e6db74>&#34;L&#34;</span>)
-</span></span><span style=display:flex><span>        image<span style=color:#f92672>.</span>thumbnail((<span style=color:#ae81ff>368</span>,<span style=color:#ae81ff>200</span>))
-</span></span><span style=display:flex><span>        im_uuid <span style=color:#f92672>=</span> str(uuid4())
-</span></span><span style=display:flex><span>        image<span style=color:#f92672>.</span>save(<span style=color:#e6db74>f</span><span style=color:#e6db74>&#34;./static/imgs/</span><span style=color:#e6db74>{</span>im_uuid<span style=color:#e6db74>}</span><span style=color:#e6db74>.jpg&#34;</span>)
-</span></span><span style=display:flex><span>        msg[<span style=color:#e6db74>&#34;image&#34;</span>] <span style=color:#f92672>=</span> im_uuid
-</span></span><span style=display:flex><span>        msg[<span style=color:#e6db74>&#34;message&#34;</span>] <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;image&#34;</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> message <span style=color:#f92672>:=</span> form<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#34;message&#34;</span>):
-</span></span><span style=display:flex><span>        msg[<span style=color:#e6db74>&#34;message&#34;</span>] <span style=color:#f92672>=</span> message
-</span></span><span style=display:flex><span>    
-</span></span><span style=display:flex><span>    messages<span style=color:#f92672>.</span>insert(msg)
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#e6db74>&#34;ok&#34;</span>
-</span></span></code></pre></div><h3 id=the-network>the network</h3><p>Ok so we have clients, a server, and a display, all on different part of the world. The clients are roaming (mainly my sister across the globe), the server is on my rasberry pi at home, and the display is at my parent&rsquo;s. I almost went the cloud way, with a hosted, public server, but that would mean spending time to enhance the app&rsquo;s security, setting up proper auth, etc etc. Quite a hassle for this. So I decided to put <a href=https://tailscale.com/>tailscale</a> to the test. It&rsquo;s a mesh VPN that allows peers to connect to each other directly using p2p tunnels.</p><p>All of the clients would have tailscale installed, configured to be on my tailnet, and rules configured to that my sister&rsquo;s phone and the display could talk to the server. Each of them have a static IP in this subnet</p><p>This would then look like this:</p><p><img src=/e-paper-display/network.png alt></p><p>Now, both my sister&rsquo;s phone and the display can access the frontend exposed by my server, without having to expose it publicly. My sister &lsquo;only&rsquo; have to remember to turn on the VPN whenever she wants to send a message.</p><h3 id=the-display>the display</h3><p>On the display side, it&rsquo;s a simple while loop:</p><ul><li>fetch the API for the latest message</li><li>sleep like 10 minutes</li></ul><p>Again, nothing fancy. Doesn&rsquo;t matter if the message isn&rsquo;t received instantaneously:</p><p>The library for controlling the actual display (<a href=https://github.com/waveshareteam/e-Paper>https://github.com/waveshareteam/e-Paper</a>) is quite well made. But for some reason the packaging was broken, so I downloaded the package and included it like this <code>waveshare-epaper @ file:///app/waveshare_epaper-1.3.0-py3-none-any.whl</code> in my requirements.</p><p>Another hurdle I encountered was figuring out how to wrap properly the message if it was too long for a single line. But that has more to do with the font that I used being clearly not monospaced. Fiddling around with arbitrary values to find the exact number of pixels are needed to space things around is always fun !</p><p>What&rsquo;s interesting here it that the lib is Pillow based, meaning you construct your image then sends it to the display:</p><p><em>(you can see my experiment with dark/light mode)</em></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>def</span> <span style=color:#a6e22e>refresh_display</span>(user<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;&#34;</span>,date<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;&#34;</span>,content<span style=color:#f92672>=</span><span style=color:#66d9ef>None</span>,dark_theme<span style=color:#f92672>=</span><span style=color:#66d9ef>False</span>):
-</span></span><span style=display:flex><span>    bg_color <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span> <span style=color:#66d9ef>if</span> dark_theme <span style=color:#66d9ef>else</span> <span style=color:#ae81ff>255</span>
-</span></span><span style=display:flex><span>    color <span style=color:#f92672>=</span> <span style=color:#ae81ff>255</span> <span style=color:#66d9ef>if</span> dark_theme <span style=color:#66d9ef>else</span> <span style=color:#ae81ff>0</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    Limage <span style=color:#f92672>=</span> Image<span style=color:#f92672>.</span>new(<span style=color:#e6db74>&#39;1&#39;</span>, (epd<span style=color:#f92672>.</span>width,epd<span style=color:#f92672>.</span>height), bg_color) 
-</span></span><span style=display:flex><span>    draw <span style=color:#f92672>=</span> ImageDraw<span style=color:#f92672>.</span>Draw(Limage)
-</span></span><span style=display:flex><span>    epd<span style=color:#f92672>.</span>display_Partial(epd<span style=color:#f92672>.</span>getbuffer(Limage))
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#75715e># blank bg</span>
-</span></span><span style=display:flex><span>    draw<span style=color:#f92672>.</span>rectangle((<span style=color:#ae81ff>0</span>, <span style=color:#ae81ff>0</span>, epd<span style=color:#f92672>.</span>width,epd<span style=color:#f92672>.</span>height), fill <span style=color:#f92672>=</span> bg_color)
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#75715e># from</span>
-</span></span><span style=display:flex><span>    draw<span style=color:#f92672>.</span>text((<span style=color:#ae81ff>12</span>, <span style=color:#ae81ff>20</span>), user, font <span style=color:#f92672>=</span> font_35,fill <span style=color:#f92672>=</span> color)
-</span></span><span style=display:flex><span>    draw<span style=color:#f92672>.</span>text((<span style=color:#ae81ff>12</span>,<span style=color:#ae81ff>50</span>),date,font <span style=color:#f92672>=</span> font_35, fill <span style=color:#f92672>=</span> color)
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> isinstance(content,Image<span style=color:#f92672>.</span>Image):
-</span></span><span style=display:flex><span>        img_w, _ <span style=color:#f92672>=</span> content<span style=color:#f92672>.</span>size
-</span></span><span style=display:flex><span>        img_x <span style=color:#f92672>=</span> int((<span style=color:#ae81ff>400</span> <span style=color:#f92672>-</span> img_w)<span style=color:#f92672>/</span><span style=color:#ae81ff>2</span>)
-</span></span><span style=display:flex><span>        Limage<span style=color:#f92672>.</span>paste(content, (img_x,<span style=color:#ae81ff>100</span>))
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>elif</span> isinstance(content,str):
-</span></span><span style=display:flex><span>        <span style=color:#75715e># message </span>
-</span></span><span style=display:flex><span>        line_start_y,line_height <span style=color:#f92672>=</span> <span style=color:#ae81ff>120</span>,<span style=color:#ae81ff>40</span>
-</span></span><span style=display:flex><span>        lines <span style=color:#f92672>=</span> textwrap<span style=color:#f92672>.</span>wrap(content, <span style=color:#ae81ff>18</span>,max_lines<span style=color:#f92672>=</span><span style=color:#ae81ff>4</span>)
-</span></span><span style=display:flex><span>        <span style=color:#66d9ef>for</span> i,l <span style=color:#f92672>in</span> enumerate(lines):
-</span></span><span style=display:flex><span>            draw<span style=color:#f92672>.</span>text((<span style=color:#ae81ff>12</span>, line_start_y<span style=color:#f92672>+</span>i<span style=color:#f92672>*</span>line_height), l, font <span style=color:#f92672>=</span> font_50, fill <span style=color:#f92672>=</span> color)
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    epd<span style=color:#f92672>.</span>display_Partial(epd<span style=color:#f92672>.</span>getbuffer(Limage))
+You can imagine the GET endpoint for the display, it&rsquo;s simply returning the last entry of the messages.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@api.post</span><span class="p">(</span><span class="s2">&#34;/messages&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">async</span> <span class="k">def</span> <span class="nf">new_message</span><span class="p">(</span><span class="n">resp</span><span class="p">:</span> <span class="n">Response</span><span class="p">,</span><span class="n">request</span><span class="p">:</span><span class="n">Request</span><span class="p">,</span><span class="n">user</span><span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">auth_check</span><span class="p">)):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">form</span> <span class="o">=</span> <span class="k">await</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">    <span class="n">msg</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;timestamp&#34;</span><span class="p">:</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="p">()),</span><span class="s2">&#34;user&#34;</span><span class="p">:</span><span class="n">user</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">img</span> <span class="o">:=</span> <span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;image&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">im</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">image</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&#34;L&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">image</span><span class="o">.</span><span class="n">thumbnail</span><span class="p">((</span><span class="mi">368</span><span class="p">,</span><span class="mi">200</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">        <span class="n">im_uuid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">        <span class="n">image</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;./static/imgs/</span><span class="si">{</span><span class="n">im_uuid</span><span class="si">}</span><span class="s2">.jpg&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">msg</span><span class="p">[</span><span class="s2">&#34;image&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="n">im_uuid</span>
+</span></span><span class="line"><span class="cl">        <span class="n">msg</span><span class="p">[</span><span class="s2">&#34;message&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&#34;image&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">message</span> <span class="o">:=</span> <span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;message&#34;</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">msg</span><span class="p">[</span><span class="s2">&#34;message&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="n">message</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;ok&#34;</span>
+</span></span></code></pre></div><h3 id="the-network">the network<a hidden class="anchor" aria-hidden="true" href="#the-network">#</a></h3>
+<p>Ok so we have clients, a server, and a display, all on different part of the world. The clients are roaming (mainly my sister across the globe), the server is on my rasberry pi at home, and the display is at my parent&rsquo;s. I almost went the cloud way, with a hosted, public server, but that would mean spending time to enhance the app&rsquo;s security, setting up proper auth, etc etc. Quite a hassle for this. So I decided to put <a href="https://tailscale.com/">tailscale</a> to the test. It&rsquo;s a mesh VPN that allows peers to connect to each other directly using p2p tunnels.</p>
+<p>All of the clients would have tailscale installed, configured to be on my tailnet, and rules configured to that my sister&rsquo;s phone and the display could talk to the server. Each of them have a static IP in this subnet</p>
+<p>This would then look like this:</p>
+<p><img loading="lazy" src="/e-paper-display/network.png"></p>
+<p>Now, both my sister&rsquo;s phone and the display can access the frontend exposed by my server, without having to expose it publicly. My sister &lsquo;only&rsquo; have to remember to turn on the VPN whenever she wants to send a message.</p>
+<h3 id="the-display">the display<a hidden class="anchor" aria-hidden="true" href="#the-display">#</a></h3>
+<p>On the display side, it&rsquo;s a simple while loop:</p>
+<ul>
+<li>fetch the API for the latest message</li>
+<li>sleep like 10 minutes</li>
+</ul>
+<p>Again, nothing fancy. Doesn&rsquo;t matter if the message isn&rsquo;t received instantaneously:</p>
+<p>The library for controlling the actual display (<a href="https://github.com/waveshareteam/e-Paper">https://github.com/waveshareteam/e-Paper</a>) is quite well made. But for some reason the packaging was broken, so I downloaded the package and included it like this <code>waveshare-epaper @ file:///app/waveshare_epaper-1.3.0-py3-none-any.whl</code> in my requirements.</p>
+<p>Another hurdle I encountered was figuring out how to wrap properly the message if it was too long for a single line. But that has more to do with the font that I used being clearly not monospaced. Fiddling around with arbitrary values to find the exact number of pixels are needed to space things around is always fun !</p>
+<p>What&rsquo;s interesting here it that the lib is Pillow based, meaning you construct your image then sends it to the display:</p>
+<p><em>(you can see my experiment with dark/light mode)</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">refresh_display</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">,</span><span class="n">date</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">,</span><span class="n">content</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">dark_theme</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="n">bg_color</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">dark_theme</span> <span class="k">else</span> <span class="mi">255</span>
+</span></span><span class="line"><span class="cl">    <span class="n">color</span> <span class="o">=</span> <span class="mi">255</span> <span class="k">if</span> <span class="n">dark_theme</span> <span class="k">else</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">Limage</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">epd</span><span class="o">.</span><span class="n">width</span><span class="p">,</span><span class="n">epd</span><span class="o">.</span><span class="n">height</span><span class="p">),</span> <span class="n">bg_color</span><span class="p">)</span> 
+</span></span><span class="line"><span class="cl">    <span class="n">draw</span> <span class="o">=</span> <span class="n">ImageDraw</span><span class="o">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">Limage</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">epd</span><span class="o">.</span><span class="n">display_Partial</span><span class="p">(</span><span class="n">epd</span><span class="o">.</span><span class="n">getbuffer</span><span class="p">(</span><span class="n">Limage</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># blank bg</span>
+</span></span><span class="line"><span class="cl">    <span class="n">draw</span><span class="o">.</span><span class="n">rectangle</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">epd</span><span class="o">.</span><span class="n">width</span><span class="p">,</span><span class="n">epd</span><span class="o">.</span><span class="n">height</span><span class="p">),</span> <span class="n">fill</span> <span class="o">=</span> <span class="n">bg_color</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1"># from</span>
+</span></span><span class="line"><span class="cl">    <span class="n">draw</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="n">user</span><span class="p">,</span> <span class="n">font</span> <span class="o">=</span> <span class="n">font_35</span><span class="p">,</span><span class="n">fill</span> <span class="o">=</span> <span class="n">color</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">draw</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span><span class="mi">50</span><span class="p">),</span><span class="n">date</span><span class="p">,</span><span class="n">font</span> <span class="o">=</span> <span class="n">font_35</span><span class="p">,</span> <span class="n">fill</span> <span class="o">=</span> <span class="n">color</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="n">img_w</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">size</span>
+</span></span><span class="line"><span class="cl">        <span class="n">img_x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="mi">400</span> <span class="o">-</span> <span class="n">img_w</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Limage</span><span class="o">.</span><span class="n">paste</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">(</span><span class="n">img_x</span><span class="p">,</span><span class="mi">100</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">        <span class="c1"># message </span>
+</span></span><span class="line"><span class="cl">        <span class="n">line_start_y</span><span class="p">,</span><span class="n">line_height</span> <span class="o">=</span> <span class="mi">120</span><span class="p">,</span><span class="mi">40</span>
+</span></span><span class="line"><span class="cl">        <span class="n">lines</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span><span class="n">max_lines</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">            <span class="n">draw</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="mi">12</span><span class="p">,</span> <span class="n">line_start_y</span><span class="o">+</span><span class="n">i</span><span class="o">*</span><span class="n">line_height</span><span class="p">),</span> <span class="n">l</span><span class="p">,</span> <span class="n">font</span> <span class="o">=</span> <span class="n">font_50</span><span class="p">,</span> <span class="n">fill</span> <span class="o">=</span> <span class="n">color</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">epd</span><span class="o">.</span><span class="n">display_Partial</span><span class="p">(</span><span class="n">epd</span><span class="o">.</span><span class="n">getbuffer</span><span class="p">(</span><span class="n">Limage</span><span class="p">))</span>
 </span></span></code></pre></div><p>I played around with various refreshes, because e-ink displays can partially refresh (change only the pixels that changed) or a full (clearing the screen in-between).
-The partial is quicker, but overtime ghosts of previous images can be visible. So a full refresh is done once in a while.</p><p>For the date on top the messages, I used the <a href=https://pypi.org/project/humanize/>humanize</a> lib to convert epoch timestamps to human-friendly format in French.</p><h1 id=how-it-turned-out>how it turned out</h1><p>Again, here is the final result:</p><p><img src=/e-paper-display/result.png alt></p><p>Quite pleased with this one. Mixing hardware and software always hits different, and &lsquo;seeing&rsquo; messages being sent literaly across the globe has a very satisfying taste to it.</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/tesla-lock-sounds/><span class=button__icon>←</span>
-<span class=button__text>Randomized Tesla Lock Sounds using a Pi</span>
-</a></span><span class="button next"><a href=/posts/lvm-resize/><span class=button__text>How to resize an LVM ext4 partition (and also non-LVM because old VMs)</span>
-<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span></a><div class=copyright><span>© 2024 Powered by
-<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
-<span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script><script src=/assets/prism.js></script></div></body></html>
+The partial is quicker, but overtime ghosts of previous images can be visible. So a full refresh is done once in a while.</p>
+<p>For the date on top the messages, I used the <a href="https://pypi.org/project/humanize/">humanize</a> lib to convert epoch timestamps to human-friendly format in French.</p>
+<h1 id="how-it-turned-out">how it turned out<a hidden class="anchor" aria-hidden="true" href="#how-it-turned-out">#</a></h1>
+<p>Again, here is the final result:</p>
+<p><img loading="lazy" src="/e-paper-display/result.png"></p>
+<p>Quite pleased with this one. Mixing hardware and software always hits different, and &lsquo;seeing&rsquo; messages being sent literaly across the globe has a very satisfying taste to it.</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/raspberrypi/">Raspberrypi</a></li>
+      <li><a href="/tags/e-ink/">E-Ink</a></li>
+      <li><a href="/tags/tailscale/">Tailscale</a></li>
+      <li><a href="/tags/python/">Python</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="/posts/tesla-lock-sounds/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>Randomized Tesla Lock Sounds using a Pi</span>
+  </a>
+  <a class="next" href="/posts/lvm-resize/">
+    <span class="title">Next »</span>
+    <br>
+    <span>How to resize an LVM ext4 partition (and also non-LVM because old VMs)</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="/">k0rventen&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

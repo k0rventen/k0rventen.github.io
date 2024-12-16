@@ -1,13 +1,227 @@
-<!doctype html><html lang=en><head><title>Reducing Docker Images Size Using Xz ::
-</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="what &amp;amp; why During a project, I needed to build a container that could render graphs based on pretty big arrays, using plotly, kaleido and pandas.
-The arrays would be DataFrames from pandas, turned into graphs through plotly, and then renderer as jpeg images using kaleido.
-This is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :"><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/reducing-docker-images-size-using-xz/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Reducing Docker Images Size Using Xz"><meta name=twitter:description content="Compression-ception"><meta property="og:title" content="Reducing Docker Images Size Using Xz"><meta property="og:description" content="Compression-ception"><meta property="og:type" content="article"><meta property="og:url" content="/posts/reducing-docker-images-size-using-xz/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2021-09-24T00:00:00+00:00"><meta property="article:modified_time" content="2021-09-24T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a><span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Reducing Docker Images Size Using Xz</h1><div class=post-meta><span class=post-date>2021-09-24
-</span><span class=post-read-time>— 4 min read</span></div><span class=post-tags><a href=/tags/docker/>#docker</a>&nbsp;
-<a href=/tags/compression/>#compression</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><ul><li><a href=#what--why>what & why</a></li><li><a href=#how>how</a><ul><li><a href=#basic-dockerfile>basic dockerfile</a></li><li><a href=#multi-layer>multi layer</a></li><li><a href=#here-comes-the-compression>here comes the compression</a></li></ul></li><li><a href=#conclusions>conclusions</a></li></ul></li></ul></nav></aside><h2 id=what--why>what & why</h2><p>During a project, I needed to build a container that could render graphs based on pretty big arrays, using <code>plotly</code>, <code>kaleido</code> and <code>pandas</code>.</p><p>The arrays would be DataFrames from pandas, turned into graphs through plotly, and then renderer as jpeg images using kaleido.</p><p>This is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :</p><pre tabindex=0><code>root@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh .
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Reducing Docker Images Size Using Xz | k0rventen&#39;s blog</title>
+<meta name="keywords" content="docker, compression">
+<meta name="description" content="Compression-ception">
+<meta name="author" content="">
+<link rel="canonical" href="/posts/reducing-docker-images-size-using-xz/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.d6fcd20a4fb86efa4dfac8ec95da60244cc8871042183da1ef28e3a762ad79c8.css" integrity="sha256-1vzSCk&#43;4bvpN&#43;sjsldpgJEzIhxBCGD2h7yjjp2Ktecg=" rel="preload stylesheet" as="style">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="/posts/reducing-docker-images-size-using-xz/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/reducing-docker-images-size-using-xz/">
+  <meta property="og:site_name" content="k0rventen&#39;s blog">
+  <meta property="og:title" content="Reducing Docker Images Size Using Xz">
+  <meta property="og:description" content="Compression-ception">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2021-09-24T00:00:00+00:00">
+    <meta property="article:modified_time" content="2021-09-24T00:00:00+00:00">
+    <meta property="article:tag" content="Docker">
+    <meta property="article:tag" content="Compression">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Reducing Docker Images Size Using Xz">
+<meta name="twitter:description" content="Compression-ception">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Reducing Docker Images Size Using Xz",
+      "item": "/posts/reducing-docker-images-size-using-xz/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Reducing Docker Images Size Using Xz",
+  "name": "Reducing Docker Images Size Using Xz",
+  "description": "Compression-ception",
+  "keywords": [
+    "docker", "compression"
+  ],
+  "articleBody": "what \u0026 why During a project, I needed to build a container that could render graphs based on pretty big arrays, using plotly, kaleido and pandas.\nThe arrays would be DataFrames from pandas, turned into graphs through plotly, and then renderer as jpeg images using kaleido.\nThis is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :\nroot@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh . 536M . root@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh * | sort -h | tail -n 5 30M numpy 33M numpy.libs 58M pandas 140M plotly 221M kaleido Well, a 536M dependencies folder. Turns out that kaleido embeds the open-source Chromium browser as a library, and plotly and pandas are both pretty big dependencies by themselves.\nThat won’t make for a nice and small container. Let’s see how we can improve things !\nhow First, let’s try to create a basic, simple docker image with these dependencies.\nrequirements.txt\npandas==1.3.1 kaleido==0.2.1 plotly==5.2.1 flask==2.0.1 basic dockerfile A very simple dockerfile for this might look like this :\nFROM python:3.9 WORKDIR /build COPY requirements.txt . RUN pip3 install -r requirements.txt COPY app.py . # launch CMD [\"python3\",\"-u\",\"app.py\"] That’s fine, but the resulting image is quite heavy :\n\u003e docker images | grep renderer renderer full 35b81d0fd3f7 10 minutes ago 1.5GB Oh well. A 1.5GB container. That’s Windows territory ! Surely we can go under a GB.\nmulti layer We can use the multi-layer system of docker to build a smaller image.\nHere we have two improvements :\nwe are using a slim image as our final layer, which is lighter than the full python:3.9. Note that due to our dependencies, we can’t use an alpine based image, otherwise we would have been much lower regarding the size. we only copy what we need from the build layer. The dockerfile might look like this :\n# build layer FROM python:3.9 as builder WORKDIR /build COPY requirements.txt . RUN pip3 install --prefix /install -r requirements.txt # final layer FROM python:3.9-slim WORKDIR /app COPY --from=builder /install /usr/local COPY app.py . # launch CMD [\"python3\",\"-u\",\"app.py\"] Once we’ve built the dependencies in the build layer, we copy the site-packages folder to the final layer.\n\u003e docker images | grep renderer renderer slim 5401960f2a66 10 seconds ago 577MB renderer full 35b81d0fd3f7 16 minutes ago 1.5GB That’s better. Only 577MB, this is just shy of 1/3 the original size.\nhere comes the compression This is where something occured to me.\nWhy not compress the whole dependency folder when building, and decompress it on-the-go when starting the container ?\nHere is the Dockerfile:\n# build layer FROM python:3.9 as builder RUN apt update \u0026\u0026 apt install xz-utils -y WORKDIR /build COPY requirements.txt . RUN pip3 install -r requirements.txt RUN XZ_OPT=\"-T 0\" tar Jcf packages.tar.xz /usr/local/lib/python3.9/site-packages/ # final layer FROM python:3.9-slim RUN apt update \u0026\u0026 apt install xz-utils --no-install-recommends -y \u0026\u0026 rm -rf /var/lib/apt/lists/* WORKDIR /app COPY --from=builder /build/packages.tar.xz . COPY app.py . # launch CMD [\"python3\",\"-u\",\"app.py\"] In our app.py, before importing the libraries:\n# before loading modules, decompress the site-package archive import subprocess decompress = subprocess.run([\"tar\",\"Jxf\", \"packages.tar.xz\" ,\"-C\", \"/\"],env={\"XZ_OPT\":\"-T 0\"},capture_output=True) import ... Looking at the produced container image :\n\u003e docker images | grep renderer renderer xz d1def5592c6e 18 seconds ago 208MB renderer slim 5401960f2a66 4 minutes ago 577MB renderer full 35b81d0fd3f7 16 minutes ago 1.5GB 208MB! That’s not bad.\nDocker compresses the image when uploaded to the registry, so let’s push our images and see what the size differences are there:\nThe gains are impressive when using a slim/multi-layer dockerfile. And by compressing our libs we gained 50MB, a ~30% improvement.\nconclusions This is fun, but not an ideal solution for handling “big” containers:\nSize-wise, the final container is still 208MB, which is a 63% decrease in size!\nbut once uploaded to a registry, and the image being compressed as a whole there, the size decrease by only 29%.\nWhen starting the container, you’ll need to decompress the packages, which (on my machine) took a few seconds. This should also be taken into account.\nIf network bandwidth was a constraint, this solution will not help much. You’ll pull 50MB less, but that’s not groundbreaking.\nThe only use case I can see is if you have storage limitations on the receiving end, as the savings are much more important once the whole image is decompressed by docker. But you will still need to decompress the package when launching a container with this image, so the gains are limited to the image.\nDespite this whole setup being not-as-practical as I thought it would initially (before reminding myself of the whole docker registry compression..), this could still be somewhat (maybe) useful in the future, so i’ll still post it..\n",
+  "wordCount" : "794",
+  "inLanguage": "en",
+  "datePublished": "2021-09-24T00:00:00Z",
+  "dateModified": "2021-09-24T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/reducing-docker-images-size-using-xz/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "k0rventen's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="/" accesskey="h" title="&gt; k0rventen: ~ (Alt + H)">&gt; k0rventen: ~</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/links" title="links">
+                    <span>links</span>
+                </a>
+            </li>
+            <li>
+                <a href="/posts" title="posts">
+                    <span>posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="/search" title="search (Alt &#43; /)" accesskey=/>
+                    <span>search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="/">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Reducing Docker Images Size Using Xz
+    </h1>
+    <div class="post-description">
+      Compression-ception
+    </div>
+    <div class="post-meta"><span title='2021-09-24 00:00:00 +0000 UTC'>September 24, 2021</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;794 words
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#what--why">what &amp; why</a></li>
+    <li><a href="#how">how</a>
+      <ul>
+        <li><a href="#basic-dockerfile">basic dockerfile</a></li>
+        <li><a href="#multi-layer">multi layer</a></li>
+        <li><a href="#here-comes-the-compression">here comes the compression</a></li>
+      </ul>
+    </li>
+    <li><a href="#conclusions">conclusions</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h2 id="what--why">what &amp; why<a hidden class="anchor" aria-hidden="true" href="#what--why">#</a></h2>
+<p>During a project, I needed to build a container that could render graphs based on pretty big arrays, using <code>plotly</code>, <code>kaleido</code> and <code>pandas</code>.</p>
+<p>The arrays would be DataFrames from pandas, turned into graphs through plotly, and then renderer as jpeg images using kaleido.</p>
+<p>This is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :</p>
+<pre tabindex="0"><code>root@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh .
 536M    .
 
 root@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh * | sort -h | tail -n 5
@@ -16,69 +230,250 @@ root@69ee6367d91f:/usr/local/lib/python3.9/site-packages# du -sh * | sort -h | t
 58M     pandas
 140M    plotly
 221M    kaleido
-</code></pre><p>Well, a <code>536M</code> dependencies folder. Turns out that <a href=https://pypi.org/project/kaleido/>kaleido</a> <code>embeds the open-source Chromium browser as a library</code>, and plotly and pandas are both pretty big dependencies by themselves.</p><p>That won&rsquo;t make for a nice and small container. Let&rsquo;s see how we can improve things !</p><h2 id=how>how</h2><p>First, let&rsquo;s try to create a basic, simple docker image with these dependencies.</p><p>requirements.txt</p><pre tabindex=0><code>pandas==1.3.1
+</code></pre><p>Well, a <code>536M</code> dependencies folder. Turns out that <a href="https://pypi.org/project/kaleido/">kaleido</a> <code>embeds the open-source Chromium browser as a library</code>, and plotly and pandas are both pretty big dependencies by themselves.</p>
+<p>That won&rsquo;t make for a nice and small container. Let&rsquo;s see how we can improve things !</p>
+<h2 id="how">how<a hidden class="anchor" aria-hidden="true" href="#how">#</a></h2>
+<p>First, let&rsquo;s try to create a basic, simple docker image with these dependencies.</p>
+<p>requirements.txt</p>
+<pre tabindex="0"><code>pandas==1.3.1
 kaleido==0.2.1
 plotly==5.2.1
 flask==2.0.1
-</code></pre><h3 id=basic-dockerfile>basic dockerfile</h3><p>A very simple dockerfile for this might look like this :</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-dockerfile data-lang=dockerfile><span style=display:flex><span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> python:3.9</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>WORKDIR</span><span style=color:#e6db74> /build</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> requirements.txt .<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> pip3 install -r requirements.txt<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> app.py .<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># launch</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>CMD</span> [<span style=color:#e6db74>&#34;python3&#34;</span>,<span style=color:#e6db74>&#34;-u&#34;</span>,<span style=color:#e6db74>&#34;app.py&#34;</span>]<span style=color:#960050;background-color:#1e0010>
-</span></span></span></code></pre></div><p>That&rsquo;s fine, but the resulting image is quite heavy :</p><pre tabindex=0><code>&gt; docker images | grep renderer
+</code></pre><h3 id="basic-dockerfile">basic dockerfile<a hidden class="anchor" aria-hidden="true" href="#basic-dockerfile">#</a></h3>
+<p>A very simple dockerfile for this might look like this :</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> python:3.9</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /build</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> requirements.txt .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> pip3 install -r requirements.txt<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> app.py .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># launch</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">CMD</span> <span class="p">[</span><span class="s2">&#34;python3&#34;</span><span class="p">,</span><span class="s2">&#34;-u&#34;</span><span class="p">,</span><span class="s2">&#34;app.py&#34;</span><span class="p">]</span><span class="err">
+</span></span></span></code></pre></div><p>That&rsquo;s fine, but the resulting image is quite heavy :</p>
+<pre tabindex="0"><code>&gt; docker images | grep renderer
 renderer                  full              35b81d0fd3f7   10 minutes ago   1.5GB
-</code></pre><p>Oh well. A <code>1.5GB</code> container. That&rsquo;s Windows territory ! Surely we can go under a GB.</p><h3 id=multi-layer>multi layer</h3><p>We can use the multi-layer system of docker to build a smaller image.</p><p>Here we have two improvements :</p><ul><li>we are using a <code>slim</code> image as our final layer, which is lighter than the full <code>python:3.9</code>. Note that due to our dependencies, we can&rsquo;t use an <em>alpine</em> based image, otherwise we would have been much lower regarding the size.</li><li>we only copy what we need from the build layer.</li></ul><p>The dockerfile might look like this :</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-dockerfile data-lang=dockerfile><span style=display:flex><span><span style=color:#75715e># build layer</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> python:3.9 as builder</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>WORKDIR</span><span style=color:#e6db74> /build</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> requirements.txt .<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> pip3 install --prefix /install -r requirements.txt<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># final layer</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> python:3.9-slim</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>WORKDIR</span><span style=color:#e6db74> /app</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> --from<span style=color:#f92672>=</span>builder /install /usr/local<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> app.py .<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># launch</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>CMD</span> [<span style=color:#e6db74>&#34;python3&#34;</span>,<span style=color:#e6db74>&#34;-u&#34;</span>,<span style=color:#e6db74>&#34;app.py&#34;</span>]<span style=color:#960050;background-color:#1e0010>
-</span></span></span></code></pre></div><p>Once we&rsquo;ve built the dependencies in the build layer, we copy the <em>site-packages</em> folder to the final layer.</p><pre tabindex=0><code>&gt; docker images | grep renderer
+</code></pre><p>Oh well. A <code>1.5GB</code> container. That&rsquo;s Windows territory ! Surely we can go under a GB.</p>
+<h3 id="multi-layer">multi layer<a hidden class="anchor" aria-hidden="true" href="#multi-layer">#</a></h3>
+<p>We can use the multi-layer system of docker to build a smaller image.</p>
+<p>Here we have two improvements :</p>
+<ul>
+<li>we are using a <code>slim</code> image as our final layer, which is lighter than the full <code>python:3.9</code>. Note that due to our dependencies, we can&rsquo;t use an <em>alpine</em> based image, otherwise we would have been much lower regarding the size.</li>
+<li>we only copy what we need from the build layer.</li>
+</ul>
+<p>The dockerfile might look like this :</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="c"># build layer</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> python:3.9 as builder</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /build</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> requirements.txt .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> pip3 install --prefix /install -r requirements.txt<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># final layer</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> python:3.9-slim</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /app</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>builder /install /usr/local<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> app.py .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># launch</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">CMD</span> <span class="p">[</span><span class="s2">&#34;python3&#34;</span><span class="p">,</span><span class="s2">&#34;-u&#34;</span><span class="p">,</span><span class="s2">&#34;app.py&#34;</span><span class="p">]</span><span class="err">
+</span></span></span></code></pre></div><p>Once we&rsquo;ve built the dependencies in the build layer, we copy the <em>site-packages</em> folder to the final layer.</p>
+<pre tabindex="0"><code>&gt; docker images | grep renderer
 renderer                  slim              5401960f2a66   10 seconds ago   577MB
 renderer                  full              35b81d0fd3f7   16 minutes ago   1.5GB
-</code></pre><p>That&rsquo;s better. <em>Only</em> 577MB, this is just shy of 1/3 the original size.</p><h3 id=here-comes-the-compression>here comes the compression</h3><p>This is where something occured to me.</p><p>Why not compress the whole dependency folder when building, and decompress it on-the-go when starting the container ?</p><p>Here is the Dockerfile:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-dockerfile data-lang=dockerfile><span style=display:flex><span><span style=color:#75715e># build layer</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> python:3.9 as builder</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> apt update <span style=color:#f92672>&amp;&amp;</span> apt install xz-utils -y<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>WORKDIR</span><span style=color:#e6db74> /build</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> requirements.txt .<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> pip3 install -r requirements.txt<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> XZ_OPT<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;-T 0&#34;</span> tar Jcf packages.tar.xz /usr/local/lib/python3.9/site-packages/<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># final layer</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>FROM</span><span style=color:#e6db74> python:3.9-slim</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> apt update <span style=color:#f92672>&amp;&amp;</span> apt install xz-utils --no-install-recommends -y <span style=color:#f92672>&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>WORKDIR</span><span style=color:#e6db74> /app</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> --from<span style=color:#f92672>=</span>builder /build/packages.tar.xz .<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> app.py .<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#75715e># launch</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>CMD</span> [<span style=color:#e6db74>&#34;python3&#34;</span>,<span style=color:#e6db74>&#34;-u&#34;</span>,<span style=color:#e6db74>&#34;app.py&#34;</span>]<span style=color:#960050;background-color:#1e0010>
-</span></span></span></code></pre></div><p>In our app.py, before importing the libraries:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-py data-lang=py><span style=display:flex><span><span style=color:#75715e># before loading modules, decompress the site-package archive</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>import</span> subprocess
-</span></span><span style=display:flex><span>decompress <span style=color:#f92672>=</span> subprocess<span style=color:#f92672>.</span>run([<span style=color:#e6db74>&#34;tar&#34;</span>,<span style=color:#e6db74>&#34;Jxf&#34;</span>, <span style=color:#e6db74>&#34;packages.tar.xz&#34;</span> ,<span style=color:#e6db74>&#34;-C&#34;</span>, <span style=color:#e6db74>&#34;/&#34;</span>],env<span style=color:#f92672>=</span>{<span style=color:#e6db74>&#34;XZ_OPT&#34;</span>:<span style=color:#e6db74>&#34;-T 0&#34;</span>},capture_output<span style=color:#f92672>=</span><span style=color:#66d9ef>True</span>)
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#f92672>import</span> ...
-</span></span></code></pre></div><p>Looking at the produced container image :</p><pre tabindex=0><code>&gt; docker images | grep renderer
+</code></pre><p>That&rsquo;s better. <em>Only</em> 577MB, this is just shy of 1/3 the original size.</p>
+<h3 id="here-comes-the-compression">here comes the compression<a hidden class="anchor" aria-hidden="true" href="#here-comes-the-compression">#</a></h3>
+<p>This is where something occured to me.</p>
+<p>Why not compress the whole dependency folder when building, and decompress it on-the-go when starting the container ?</p>
+<p>Here is the Dockerfile:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="c"># build layer</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> python:3.9 as builder</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> apt update <span class="o">&amp;&amp;</span> apt install xz-utils -y<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /build</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> requirements.txt .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> pip3 install -r requirements.txt<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> <span class="nv">XZ_OPT</span><span class="o">=</span><span class="s2">&#34;-T 0&#34;</span> tar Jcf packages.tar.xz /usr/local/lib/python3.9/site-packages/<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># final layer</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> python:3.9-slim</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> apt update <span class="o">&amp;&amp;</span> apt install xz-utils --no-install-recommends -y <span class="o">&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /app</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>builder /build/packages.tar.xz .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> app.py .<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># launch</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">CMD</span> <span class="p">[</span><span class="s2">&#34;python3&#34;</span><span class="p">,</span><span class="s2">&#34;-u&#34;</span><span class="p">,</span><span class="s2">&#34;app.py&#34;</span><span class="p">]</span><span class="err">
+</span></span></span></code></pre></div><p>In our app.py, before importing the libraries:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-py" data-lang="py"><span class="line"><span class="cl"><span class="c1"># before loading modules, decompress the site-package archive</span>
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">subprocess</span>
+</span></span><span class="line"><span class="cl"><span class="n">decompress</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&#34;tar&#34;</span><span class="p">,</span><span class="s2">&#34;Jxf&#34;</span><span class="p">,</span> <span class="s2">&#34;packages.tar.xz&#34;</span> <span class="p">,</span><span class="s2">&#34;-C&#34;</span><span class="p">,</span> <span class="s2">&#34;/&#34;</span><span class="p">],</span><span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;XZ_OPT&#34;</span><span class="p">:</span><span class="s2">&#34;-T 0&#34;</span><span class="p">},</span><span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">...</span>
+</span></span></code></pre></div><p>Looking at the produced container image :</p>
+<pre tabindex="0"><code>&gt; docker images | grep renderer
 renderer                  xz                d1def5592c6e   18 seconds ago   208MB         
 renderer                  slim              5401960f2a66   4 minutes ago    577MB
 renderer                  full              35b81d0fd3f7   16 minutes ago   1.5GB
-</code></pre><p><code>208MB</code>! That&rsquo;s not bad.</p><p>Docker compresses the image when uploaded to the registry, so let&rsquo;s push our images and see what the size differences are there:</p><p><img src=/docker-xz/registry.png alt></p><p>The gains are impressive when using a slim/multi-layer dockerfile. And by compressing our libs we gained 50MB, a ~30% improvement.</p><h2 id=conclusions>conclusions</h2><p>This is fun, but not an ideal solution for handling &ldquo;big&rdquo; containers:</p><ul><li><p>Size-wise, the final container is still 208MB, which is a <code>63%</code> decrease in size!</p></li><li><p>but once uploaded to a registry, and the image being compressed as a whole there, the size decrease by <em>only</em> <code>29%</code>.</p></li><li><p>When starting the container, you&rsquo;ll need to decompress the packages, which (on my machine) took a few seconds. This should also be taken into account.</p></li></ul><p>If network bandwidth was a constraint, this solution will not help much. You&rsquo;ll pull 50MB less, but that&rsquo;s not <em>groundbreaking</em>.</p><p>The only use case I can see is if you have storage limitations on the receiving end, as the savings are much more important once the whole image is decompressed by docker. But you will still need to decompress the package when launching a container with this image, so the gains are limited to the image.</p><p>Despite this whole setup being not-as-practical as I thought it would initially (before reminding myself of the whole docker registry compression..), this could still be <em>somewhat (maybe)</em> useful in the future, so i&rsquo;ll still post it..</p></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/remote-mulituser-vscode-kubernetes/><span class=button__icon>←</span>
-<span class=button__text>Remote, multi-user VSCode running in kubernetes</span>
-</a></span><span class="button next"><a href=/posts/a-monkey-in-the-cluster/><span class=button__text>A Monkey in the Cluster</span>
-<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span></a><div class=copyright><span>© 2024 Powered by
-<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
-<span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script><script src=/assets/prism.js></script></div></body></html>
+</code></pre><p><code>208MB</code>! That&rsquo;s not bad.</p>
+<p>Docker compresses the image when uploaded to the registry, so let&rsquo;s push our images and see what the size differences are there:</p>
+<p><img loading="lazy" src="/docker-xz/registry.png"></p>
+<p>The gains are impressive when using a slim/multi-layer dockerfile. And by compressing our libs we gained 50MB, a ~30% improvement.</p>
+<h2 id="conclusions">conclusions<a hidden class="anchor" aria-hidden="true" href="#conclusions">#</a></h2>
+<p>This is fun, but not an ideal solution for handling &ldquo;big&rdquo; containers:</p>
+<ul>
+<li>
+<p>Size-wise, the final container is still 208MB, which is a <code>63%</code> decrease in size!</p>
+</li>
+<li>
+<p>but once uploaded to a registry, and the image being compressed as a whole there, the size decrease by <em>only</em> <code>29%</code>.</p>
+</li>
+<li>
+<p>When starting the container, you&rsquo;ll need to decompress the packages, which (on my machine) took a few seconds. This should also be taken into account.</p>
+</li>
+</ul>
+<p>If network bandwidth was a constraint, this solution will not help much. You&rsquo;ll pull 50MB less, but that&rsquo;s not <em>groundbreaking</em>.</p>
+<p>The only use case I can see is if you have storage limitations on the receiving end, as the savings are much more important once the whole image is decompressed by docker. But you will still need to decompress the package when launching a container with this image, so the gains are limited to the image.</p>
+<p>Despite this whole setup being not-as-practical as I thought it would initially (before reminding myself of the whole docker registry compression..), this could still be <em>somewhat (maybe)</em> useful in the future, so i&rsquo;ll still post it..</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/docker/">Docker</a></li>
+      <li><a href="/tags/compression/">Compression</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="/posts/remote-mulituser-vscode-kubernetes/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>Remote, multi-user VSCode running in kubernetes</span>
+  </a>
+  <a class="next" href="/posts/a-monkey-in-the-cluster/">
+    <span class="title">Next »</span>
+    <br>
+    <span>A Monkey in the Cluster</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="/">k0rventen&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

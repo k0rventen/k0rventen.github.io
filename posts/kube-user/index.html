@@ -1,89 +1,486 @@
-<!doctype html><html lang=en><head><title>Add a new external user (or bot) in k8s ::
-</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="what &amp;amp; why If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.
-To authenticate, humans can use both the ServiceAccount resource (through a token) and as Users (trough a key and crt). Bots or non-human things should only use ServiceAccounts.
-A word on RBAC Role Based Access Control (RBAC) is a way of separating users from privileges, by introducing roles."><meta name=keywords content><meta name=robots content="noodp"><link rel=canonical href=/posts/kube-user/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/style.css><link rel=apple-touch-icon-precomposed sizes=144x144 href=/img/apple-touch-icon-144-precomposed.png><link rel="shortcut icon" href=/img/favicon.png><link href=/assets/fonts/Inter-Italic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Regular.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Medium.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-MediumItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-Bold.woff2 rel=preload type=font/woff2 as=font crossorigin><link href=/assets/fonts/Inter-BoldItalic.woff2 rel=preload type=font/woff2 as=font crossorigin><meta name=twitter:card content="summary"><meta name=twitter:title content="Add a new external user (or bot) in k8s"><meta name=twitter:description content="and do it properly with rbac"><meta property="og:title" content="Add a new external user (or bot) in k8s"><meta property="og:description" content="and do it properly with rbac"><meta property="og:type" content="article"><meta property="og:url" content="/posts/kube-user/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2022-10-03T00:00:00+00:00"><meta property="article:modified_time" content="2023-01-31T00:00:00+00:00"></head><body class=dark-theme><div class=container><header class=header><span class=header__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span>
-</a><span class=header__right><nav class=menu><ul class="menu__inner menu__inner--desktop"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul><ul class="menu__inner menu__inner--mobile"><li><a href=/links>links</a></li><li><a href=/manpage>manpage</a></li><li><a href=/>posts</a></li></ul></nav><span class=menu-trigger><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-</span><span class=theme-toggle><svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 41c10.4934.0 19-8.5066 19-19C41 11.5066 32.4934 3 22 3 11.5066 3 3 11.5066 3 22s8.5066 19 19 19zM7 22C7 13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22z"/></svg></span></span></span></header><div class=content><div class=post><h1 class=post-title>Add a new external user (or bot) in k8s</h1><div class=post-meta><span class=post-date>2022-10-03
-</span><span class=post-read-time>— 5 min read</span></div><span class=post-tags><a href=/tags/k8s/>#k8s</a>&nbsp;
-<a href=/tags/rbac/>#rbac</a>&nbsp;
-<a href=/tags/security/>#security</a>&nbsp;</span><div class=post-content><h2>Table of Contents</h2><aside class=table-of-contents><nav id=TableOfContents><ul><li><a href=#what--why>what & why</a><ul><li><a href=#a-word-on-rbac>A word on RBAC</a></li></ul></li><li><a href=#how>how</a><ul><li><a href=#users-for-humans>Users for humans</a></li><li><a href=#serviceaccounts-for-non-humans-updated-march-2022>ServiceAccounts for non humans [Updated March 2022]</a><ul><li><a href=#note-for-kubernetes--124-updated-january-2023>Note for kubernetes >= 1.24 [Updated January 2023]</a></li></ul></li><li><a href=#serviceaccounts-og-july-2021>ServiceAccounts [OG July 2021]</a></li><li><a href=#impersonating-other-users>Impersonating other users</a></li></ul></li></ul></nav></aside><h1 id=what--why>what & why</h1><p>If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.</p><p>To authenticate, humans can use both the <code>ServiceAccount</code> resource (through a token) and as <code>Users</code> (trough a key and crt). Bots or non-human things should only use <code>ServiceAccounts</code>.</p><h2 id=a-word-on-rbac>A word on RBAC</h2><p>Role Based Access Control (RBAC) is a way of separating users from privileges, by introducing <code>roles</code>. Instead of linking users to privlieges directly (Jake has read access on the pods), we link users to roles, which have a given set of privileges (Jake is a developper, and the developper role has read access on pods.). We can now attach multiple users to a role, and albeit it complexifies somewhat the number of ressources,</p><p>In Kubernetes, we need to create 3 resources when creating permissions:</p><ul><li>a <code>User</code> (or <code>ServiceAccount</code>)</li><li>a <code>Role</code> (bound to a given namespace) or <code>clusterRole</code> (spans through the cluster) that contains privileges,</li><li>a <code>RoleBinding</code> or <code>ClusterRoleBinding</code>, that will bind our subject to the role.</li></ul><p><a href=https://kubernetes.io/docs/reference/access-authn-authz/rbac/>k8s doc on RBAC</a></p><h1 id=how>how</h1><h2 id=users-for-humans>Users for humans</h2><p><em>Note: A part of the procedure should be done on a cluster&rsquo;s node, as we need access to the control plane&rsquo;s key & certificate.</em></p><p>First, we&rsquo;ll create a key for our user, here named jake:</p><pre tabindex=0><code>openssl genrsa -out jake.key 2048
-</code></pre><p>Now, we&rsquo;ll create a CSR (Certificate Signing Request) that our cluster will sign:</p><pre tabindex=0><code>openssl req \
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Add a new external user (or bot) in k8s | k0rventen&#39;s blog</title>
+<meta name="keywords" content="k8s, rbac, security">
+<meta name="description" content="and do it properly with rbac">
+<meta name="author" content="">
+<link rel="canonical" href="/posts/kube-user/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.d6fcd20a4fb86efa4dfac8ec95da60244cc8871042183da1ef28e3a762ad79c8.css" integrity="sha256-1vzSCk&#43;4bvpN&#43;sjsldpgJEzIhxBCGD2h7yjjp2Ktecg=" rel="preload stylesheet" as="style">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="/posts/kube-user/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/kube-user/">
+  <meta property="og:site_name" content="k0rventen&#39;s blog">
+  <meta property="og:title" content="Add a new external user (or bot) in k8s">
+  <meta property="og:description" content="and do it properly with rbac">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2022-10-03T00:00:00+00:00">
+    <meta property="article:modified_time" content="2023-01-31T00:00:00+00:00">
+    <meta property="article:tag" content="K8s">
+    <meta property="article:tag" content="Rbac">
+    <meta property="article:tag" content="Security">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Add a new external user (or bot) in k8s">
+<meta name="twitter:description" content="and do it properly with rbac">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Add a new external user (or bot) in k8s",
+      "item": "/posts/kube-user/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Add a new external user (or bot) in k8s",
+  "name": "Add a new external user (or bot) in k8s",
+  "description": "and do it properly with rbac",
+  "keywords": [
+    "k8s", "rbac", "security"
+  ],
+  "articleBody": "what \u0026 why If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.\nTo authenticate, humans can use both the ServiceAccount resource (through a token) and as Users (trough a key and crt). Bots or non-human things should only use ServiceAccounts.\nA word on RBAC Role Based Access Control (RBAC) is a way of separating users from privileges, by introducing roles. Instead of linking users to privlieges directly (Jake has read access on the pods), we link users to roles, which have a given set of privileges (Jake is a developper, and the developper role has read access on pods.). We can now attach multiple users to a role, and albeit it complexifies somewhat the number of ressources,\nIn Kubernetes, we need to create 3 resources when creating permissions:\na User (or ServiceAccount) a Role (bound to a given namespace) or clusterRole (spans through the cluster) that contains privileges, a RoleBinding or ClusterRoleBinding, that will bind our subject to the role. k8s doc on RBAC\nhow Users for humans Note: A part of the procedure should be done on a cluster’s node, as we need access to the control plane’s key \u0026 certificate.\nFirst, we’ll create a key for our user, here named jake:\nopenssl genrsa -out jake.key 2048 Now, we’ll create a CSR (Certificate Signing Request) that our cluster will sign:\nopenssl req \\ -new \\ -subj \"/CN=jake\" \\ -key jake.key \\ -out jake.csr This will create a .csr file, that we’ll sign using the certificate of the cluster:\nNote: some k8s distros do not store their pki file in /etc/kubernetes, check with their respective documentation on where they are.\nopenssl x509 -req \\ -in jake.csr \\ -CA /etc/kubernetes/pki/ca.crt \\ -CAkey /etc/kubernetes/pki/ca.key \\ -out jake.crt -days 365 This creates a jake.crt.\nNow we can use the .crt and .key that were created as an authentification method for our cluster. We’ll copy those to our machine. Let’s create a new user with the new auth method:\nkubectl config set-credentials jake --client-certificate=$PWD/jake.crt --client-key=$PWD/jake.key And now create a context with our new user\nkubectl config set-context jake-on-dev-cluster --cluster=dev-cluster --user=jake ServiceAccounts for non humans [Updated March 2022] If you are using a fairly recent (\u003e= 1.22) version of kubectl which allows the creation of ressources through kubectl create, it’s now super easy to do so:\nCreate a new service account named bot1:\nkubectl create sa bot1 now, create a role (or cluster role) with the wanted permissions. Let’s say that the bot which will be using the service account will only need to get, list and watch pods and deployments in his namespace (default). (Further documentation can be retrieved using kubectl create role -h)\nkubectl create role bot1-pods --verb=get,list,watch --resource=pods,deploy Now, we’ll just bind the role (or cluster role) with our service account, using a rolebinding:\nthe service account must be specified using namespace:sa\nkubectl create rolebinding --serviceaccount default:bot1 --role bot1-pods bot1-pods nice ! Using only 3 commands we were able to create and configure our service account. Of course if further configuration on the role is needed (to have greater granularity), we can create a proper manifest or edit the ressource, but it gives us a good base to start with.\nNote for kubernetes \u003e= 1.24 [Updated January 2023] Since kubernetes 1.24 (or 1.25 depending on the distro and flag activation), when creating a serviceaccount, kubernetes does not create an associated token containing a token. Release note about the change here.\nInstead, we should use Tokens:\nkubectl create token which will return a JWT token that can be used.\nTo retrieve the token linked to the service account, we can simply search the associated secret:\n# using jq kubectl get secrets -o json | jq '.items[] | select(.metadata.name|test(\"bot1-token.*\")) | .data.token' # or using kubectl's jsonpath kubectl get -o jsonpath=\"{.data.token}\" secret (kubectl get sa bot1 -o jsonpath=\"{.secrets[0]['name']}\") ServiceAccounts [OG July 2021] First, create a new serviceaccount, clusterrole (or role) \u0026 clusterrole binding (or role binding). Do not forget to change the permissions according to your needs :\napiVersion: v1 kind: ServiceAccount metadata: name: readonly namespace: --- # RB for the SA apiVersion: rbac.authorization.k8s.io/v1 kind: ClusterRoleBinding metadata: name: readonly subjects: - kind: ServiceAccount name: readonly namespace: roleRef: kind: ClusterRole name: readonly apiGroup: rbac.authorization.k8s.io --- # Permissions for the SA apiVersion: rbac.authorization.k8s.io/v1 kind: ClusterRole metadata: name: readonly rules: - apiGroups: [''] # core API resources: [\"pods\"] verbs: [\"get\", \"watch\", \"list\"] apply it k apply -f user.yml\nNow grab the secret for that serviceaccount:\nk get secrets | grep readonly Tht will be something like readonly-token-wkp94. Then grab the secret’s token, and decode it from b64\nk get -o yaml secrets readonly-token-wkp94 | grep token: echo | base64 -d You can now pass this token to whatever you need to.\nIf you need to setup a new human access (using kubectl for example) :\nkubectl config set-credentials newuser --token=\"\" kubectl config set-context newuser-access --cluster= --user=newuser kubectl config use-context newuser-access you should now be able to use kubectl, but with the permissions of that serviceAccount.\nImpersonating other users Using impersonation (which requires the impersonate verb on users, groups, and serviceaccounts in the core API group), we can test the newly created service account’s permissions:\ncan the account get pods ?\n\u003e kubectl auth can-i --as \"system:serviceaccount:namespace:serviceaccount_name\" get pods yes can we get secrets ?\n\u003e kubectl auth can-i --as \"user\" get secrets no What does this account has access to:\n\u003e kubectl auth can-i --as \"user\" --list Resources Non-Resource URLs Resource Names Verbs deployments.apps [] [] [create get list update patch] statefulsets.apps [] [] [create get list update patch] ",
+  "wordCount" : "948",
+  "inLanguage": "en",
+  "datePublished": "2022-10-03T00:00:00Z",
+  "dateModified": "2023-01-31T00:00:00Z",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/kube-user/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "k0rventen's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="/" accesskey="h" title="&gt; k0rventen: ~ (Alt + H)">&gt; k0rventen: ~</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/links" title="links">
+                    <span>links</span>
+                </a>
+            </li>
+            <li>
+                <a href="/posts" title="posts">
+                    <span>posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="/search" title="search (Alt &#43; /)" accesskey=/>
+                    <span>search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="/">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Add a new external user (or bot) in k8s
+    </h1>
+    <div class="post-description">
+      and do it properly with rbac
+    </div>
+    <div class="post-meta"><span title='2022-10-03 00:00:00 +0000 UTC'>October 3, 2022</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;948 words
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#a-word-on-rbac">A word on RBAC</a></li>
+  </ul>
+
+  <ul>
+    <li><a href="#users-for-humans">Users for humans</a></li>
+    <li><a href="#serviceaccounts-for-non-humans-updated-march-2022">ServiceAccounts for non humans [Updated March 2022]</a>
+      <ul>
+        <li><a href="#note-for-kubernetes--124-updated-january-2023">Note for kubernetes &gt;= 1.24 [Updated January 2023]</a></li>
+      </ul>
+    </li>
+    <li><a href="#serviceaccounts-og-july-2021">ServiceAccounts [OG July 2021]</a></li>
+    <li><a href="#impersonating-other-users">Impersonating other users</a></li>
+  </ul>
+</nav>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="what--why">what &amp; why<a hidden class="anchor" aria-hidden="true" href="#what--why">#</a></h1>
+<p>If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.</p>
+<p>To authenticate, humans can use both the <code>ServiceAccount</code> resource (through a token) and as <code>Users</code> (trough a key and crt). Bots or non-human things should only use <code>ServiceAccounts</code>.</p>
+<h2 id="a-word-on-rbac">A word on RBAC<a hidden class="anchor" aria-hidden="true" href="#a-word-on-rbac">#</a></h2>
+<p>Role Based Access Control (RBAC) is a way of separating users from privileges, by introducing <code>roles</code>. Instead of linking users to privlieges directly (Jake has read access on the pods), we link users to roles, which have a given set of privileges (Jake is a developper, and the developper role has read access on pods.). We can now attach multiple users to a role, and albeit it complexifies somewhat the number of ressources,</p>
+<p>In Kubernetes, we need to create 3 resources when creating permissions:</p>
+<ul>
+<li>a <code>User</code> (or <code>ServiceAccount</code>)</li>
+<li>a <code>Role</code> (bound to a given namespace) or <code>clusterRole</code> (spans through the cluster) that contains privileges,</li>
+<li>a <code>RoleBinding</code> or <code>ClusterRoleBinding</code>, that will bind our subject to the role.</li>
+</ul>
+<p><a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/">k8s doc on RBAC</a></p>
+<h1 id="how">how<a hidden class="anchor" aria-hidden="true" href="#how">#</a></h1>
+<h2 id="users-for-humans">Users for humans<a hidden class="anchor" aria-hidden="true" href="#users-for-humans">#</a></h2>
+<p><em>Note: A part of the procedure should be done on a cluster&rsquo;s node, as we need access to the control plane&rsquo;s key &amp; certificate.</em></p>
+<p>First, we&rsquo;ll create a key for our user, here named jake:</p>
+<pre tabindex="0"><code>openssl genrsa -out jake.key 2048
+</code></pre><p>Now, we&rsquo;ll create a CSR (Certificate Signing Request) that our cluster will sign:</p>
+<pre tabindex="0"><code>openssl req \
   -new \
   -subj &#34;/CN=jake&#34; \
   -key jake.key \
   -out jake.csr
-</code></pre><p>This will create a .csr file, that we&rsquo;ll sign using the certificate of the cluster:</p><p><em>Note: some k8s distros do not store their pki file in /etc/kubernetes, check with their respective documentation on where they are.</em></p><pre tabindex=0><code>openssl x509 -req \
+</code></pre><p>This will create a .csr file, that we&rsquo;ll sign using the certificate of the cluster:</p>
+<p><em>Note: some k8s distros do not store their pki file in /etc/kubernetes, check with their respective documentation on where they are.</em></p>
+<pre tabindex="0"><code>openssl x509 -req \
   -in jake.csr \
   -CA /etc/kubernetes/pki/ca.crt \
   -CAkey /etc/kubernetes/pki/ca.key \
   -out jake.crt -days 365
-</code></pre><p>This creates a <code>jake.crt</code>.</p><p>Now we can use the <code>.crt</code> and <code>.key</code> that were created as an authentification method for our cluster. We&rsquo;ll copy those to our machine. Let&rsquo;s create a new user with the new auth method:</p><pre tabindex=0><code>kubectl config set-credentials jake --client-certificate=$PWD/jake.crt --client-key=$PWD/jake.key
-</code></pre><p>And now create a context with our new user</p><pre tabindex=0><code>kubectl config set-context jake-on-dev-cluster --cluster=dev-cluster --user=jake
-</code></pre><h2 id=serviceaccounts-for-non-humans-updated-march-2022>ServiceAccounts for non humans [Updated March 2022]</h2><p>If you are using a fairly recent (>= 1.22) version of kubectl which allows the creation of ressources through <code>kubectl create</code>, it&rsquo;s now super easy to do so:</p><p>Create a new service account named <code>bot1</code>:</p><pre tabindex=0><code>kubectl create sa bot1
-</code></pre><p>now, create a role (or cluster role) with the wanted permissions. Let&rsquo;s say that the bot which will be using the service account will only need to get, list and watch pods and deployments in his namespace (default). (Further documentation can be retrieved using <code>kubectl create role -h</code>)</p><pre tabindex=0><code>kubectl create role bot1-pods --verb=get,list,watch --resource=pods,deploy
-</code></pre><p>Now, we&rsquo;ll just bind the role (or cluster role) with our service account, using a rolebinding:</p><p><em>the service account must be specified using namespace:sa</em></p><pre tabindex=0><code>kubectl create rolebinding --serviceaccount default:bot1 --role bot1-pods bot1-pods
-</code></pre><p>nice ! Using only 3 commands we were able to create and configure our service account. Of course if further configuration on the role is needed (to have greater granularity), we can create a proper manifest or edit the ressource, but it gives us a good base to start with.</p><h3 id=note-for-kubernetes--124-updated-january-2023>Note for kubernetes >= 1.24 [Updated January 2023]</h3><p>Since kubernetes 1.24 (or 1.25 depending on the distro and flag activation), when creating a serviceaccount, kubernetes does not create an associated token containing a token. Release note about the change <a href=https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md#no-really-you-must-read-this-before-you-upgrade>here</a>.</p><p>Instead, we should use <code>Tokens</code>:</p><pre tabindex=0><code>kubectl create token &lt;serviceaccount_name&gt;
-</code></pre><p>which will return a JWT token that can be used.</p><p>To retrieve the token linked to the service account, we can simply search the associated secret:</p><pre tabindex=0><code># using jq
+</code></pre><p>This creates a <code>jake.crt</code>.</p>
+<p>Now we can use the <code>.crt</code> and <code>.key</code> that were created as an authentification method for our cluster. We&rsquo;ll copy those to our machine. Let&rsquo;s create a new user with the new auth method:</p>
+<pre tabindex="0"><code>kubectl config set-credentials jake --client-certificate=$PWD/jake.crt --client-key=$PWD/jake.key
+</code></pre><p>And now create a context with our new user</p>
+<pre tabindex="0"><code>kubectl config set-context jake-on-dev-cluster --cluster=dev-cluster --user=jake
+</code></pre><h2 id="serviceaccounts-for-non-humans-updated-march-2022">ServiceAccounts for non humans [Updated March 2022]<a hidden class="anchor" aria-hidden="true" href="#serviceaccounts-for-non-humans-updated-march-2022">#</a></h2>
+<p>If you are using a fairly recent (&gt;= 1.22) version of kubectl which allows the creation of ressources through <code>kubectl create</code>, it&rsquo;s now super easy to do so:</p>
+<p>Create a new service account named <code>bot1</code>:</p>
+<pre tabindex="0"><code>kubectl create sa bot1
+</code></pre><p>now, create a role (or cluster role) with the wanted permissions. Let&rsquo;s say that the bot which will be using the service account will only need to get, list and watch pods and deployments in his namespace (default). (Further documentation can be retrieved using <code>kubectl create role -h</code>)</p>
+<pre tabindex="0"><code>kubectl create role bot1-pods --verb=get,list,watch --resource=pods,deploy
+</code></pre><p>Now, we&rsquo;ll just bind the role (or cluster role) with our service account, using a rolebinding:</p>
+<p><em>the service account must be specified using namespace:sa</em></p>
+<pre tabindex="0"><code>kubectl create rolebinding --serviceaccount default:bot1 --role bot1-pods bot1-pods
+</code></pre><p>nice ! Using only 3 commands we were able to create and configure our service account. Of course if further configuration on the role is needed (to have greater granularity), we can create a proper manifest or edit the ressource, but it gives us a good base to start with.</p>
+<h3 id="note-for-kubernetes--124-updated-january-2023">Note for kubernetes &gt;= 1.24 [Updated January 2023]<a hidden class="anchor" aria-hidden="true" href="#note-for-kubernetes--124-updated-january-2023">#</a></h3>
+<p>Since kubernetes 1.24 (or 1.25 depending on the distro and flag activation), when creating a serviceaccount, kubernetes does not create an associated token containing a token. Release note about the change <a href="https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md#no-really-you-must-read-this-before-you-upgrade">here</a>.</p>
+<p>Instead, we should use <code>Tokens</code>:</p>
+<pre tabindex="0"><code>kubectl create token &lt;serviceaccount_name&gt;
+</code></pre><p>which will return a JWT token that can be used.</p>
+<p>To retrieve the token linked to the service account, we can simply search the associated secret:</p>
+<pre tabindex="0"><code># using jq
 kubectl get secrets -o json | jq &#39;.items[] | select(.metadata.name|test(&#34;bot1-token.*&#34;)) | .data.token&#39;
 
 # or using kubectl&#39;s jsonpath
 kubectl get -o jsonpath=&#34;{.data.token}&#34; secret (kubectl get sa bot1 -o jsonpath=&#34;{.secrets[0][&#39;name&#39;]}&#34;)
-</code></pre><h2 id=serviceaccounts-og-july-2021>ServiceAccounts [OG July 2021]</h2><p>First, create a new serviceaccount, clusterrole (or role) & clusterrole binding (or role binding). Do not forget to change the permissions according to your needs :</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yml data-lang=yml><span style=display:flex><span><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>v1</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ServiceAccount</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>metadata</span>:
-</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>readonly</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>&lt;ns&gt;</span>
-</span></span><span style=display:flex><span>---
-</span></span><span style=display:flex><span><span style=color:#75715e># RB for the SA</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>rbac.authorization.k8s.io/v1</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ClusterRoleBinding</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>metadata</span>:
-</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>readonly</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>subjects</span>:
-</span></span><span style=display:flex><span>- <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ServiceAccount</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>readonly</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>namespace</span>: <span style=color:#ae81ff>&lt;ns&gt;</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>roleRef</span>:
-</span></span><span style=display:flex><span>  <span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ClusterRole</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>readonly</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>apiGroup</span>: <span style=color:#ae81ff>rbac.authorization.k8s.io</span>
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>---
-</span></span><span style=display:flex><span><span style=color:#75715e># Permissions for the SA</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>apiVersion</span>: <span style=color:#ae81ff>rbac.authorization.k8s.io/v1</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>kind</span>: <span style=color:#ae81ff>ClusterRole</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>metadata</span>:
-</span></span><span style=display:flex><span>  <span style=color:#f92672>name</span>: <span style=color:#ae81ff>readonly</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>rules</span>:
-</span></span><span style=display:flex><span>- <span style=color:#f92672>apiGroups</span>: [<span style=color:#e6db74>&#39;&#39;</span>] <span style=color:#75715e># core API</span>
-</span></span><span style=display:flex><span>  <span style=color:#f92672>resources</span>: [<span style=color:#e6db74>&#34;pods&#34;</span>]
-</span></span><span style=display:flex><span>  <span style=color:#f92672>verbs</span>: [<span style=color:#e6db74>&#34;get&#34;</span>, <span style=color:#e6db74>&#34;watch&#34;</span>, <span style=color:#e6db74>&#34;list&#34;</span>]
-</span></span></code></pre></div><p>apply it <code>k apply -f user.yml</code></p><p>Now grab the secret for that serviceaccount:</p><pre tabindex=0><code>k get secrets | grep readonly
+</code></pre><h2 id="serviceaccounts-og-july-2021">ServiceAccounts [OG July 2021]<a hidden class="anchor" aria-hidden="true" href="#serviceaccounts-og-july-2021">#</a></h2>
+<p>First, create a new serviceaccount, clusterrole (or role) &amp; clusterrole binding (or role binding). Do not forget to change the permissions according to your needs :</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yml" data-lang="yml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ServiceAccount</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">readonly</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">&lt;ns&gt;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c"># RB for the SA</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">rbac.authorization.k8s.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ClusterRoleBinding</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">readonly</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">subjects</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span>- <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ServiceAccount</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">readonly</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">&lt;ns&gt;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">roleRef</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ClusterRole</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">readonly</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">apiGroup</span><span class="p">:</span><span class="w"> </span><span class="l">rbac.authorization.k8s.io</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nn">---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c"># Permissions for the SA</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">rbac.authorization.k8s.io/v1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ClusterRole</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">readonly</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">rules</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span>- <span class="nt">apiGroups</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span><span class="w"> </span><span class="c"># core API</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;pods&#34;</span><span class="p">]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">verbs</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;get&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;watch&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;list&#34;</span><span class="p">]</span><span class="w">
+</span></span></span></code></pre></div><p>apply it <code>k apply -f user.yml</code></p>
+<p>Now grab the secret for that serviceaccount:</p>
+<pre tabindex="0"><code>k get secrets | grep readonly
 </code></pre><p>Tht will be something like <code>readonly-token-wkp94</code>.
-Then grab the secret&rsquo;s token, <strong>and decode it from b64</strong></p><pre tabindex=0><code>k get -o yaml secrets readonly-token-wkp94 | grep token:
+Then grab the secret&rsquo;s token, <strong>and decode it from b64</strong></p>
+<pre tabindex="0"><code>k get -o yaml secrets readonly-token-wkp94 | grep token:
 
 echo &lt;token&gt; | base64 -d
-</code></pre><p>You can now pass this token to whatever you need to.</p><p>If you need to setup a new human access (using kubectl for example) :</p><pre tabindex=0><code>kubectl config set-credentials newuser --token=&#34;&lt;token&gt;&#34;
+</code></pre><p>You can now pass this token to whatever you need to.</p>
+<p>If you need to setup a new human access (using kubectl for example) :</p>
+<pre tabindex="0"><code>kubectl config set-credentials newuser --token=&#34;&lt;token&gt;&#34;
 
 kubectl config set-context newuser-access --cluster=&lt;clustername&gt; --user=newuser
 
 kubectl config use-context newuser-access
-</code></pre><p>you should now be able to use kubectl, but with the permissions of that serviceAccount.</p><h2 id=impersonating-other-users>Impersonating other users</h2><p>Using impersonation (which requires the <code>impersonate</code> verb on <code>users</code>, <code>groups</code>, and <code>serviceaccounts</code> in the core API group), we can test the newly created service account&rsquo;s permissions:</p><p>can the account get pods ?</p><pre tabindex=0><code>&gt; kubectl auth can-i --as &#34;system:serviceaccount:namespace:serviceaccount_name&#34; get pods
+</code></pre><p>you should now be able to use kubectl, but with the permissions of that serviceAccount.</p>
+<h2 id="impersonating-other-users">Impersonating other users<a hidden class="anchor" aria-hidden="true" href="#impersonating-other-users">#</a></h2>
+<p>Using impersonation (which requires the <code>impersonate</code> verb on <code>users</code>, <code>groups</code>, and <code>serviceaccounts</code> in the core API group), we can test the newly created service account&rsquo;s permissions:</p>
+<p>can the account get pods ?</p>
+<pre tabindex="0"><code>&gt; kubectl auth can-i --as &#34;system:serviceaccount:namespace:serviceaccount_name&#34; get pods
 yes
-</code></pre><p>can we get secrets ?</p><pre tabindex=0><code>&gt; kubectl auth can-i --as &#34;user&#34; get secrets
+</code></pre><p>can we get secrets ?</p>
+<pre tabindex="0"><code>&gt; kubectl auth can-i --as &#34;user&#34; get secrets
 no
-</code></pre><p>What does this account has access to:</p><pre tabindex=0><code>&gt; kubectl auth can-i --as &#34;user&#34; --list
+</code></pre><p>What does this account has access to:</p>
+<pre tabindex="0"><code>&gt; kubectl auth can-i --as &#34;user&#34; --list
 Resources                                       Non-Resource URLs                     Resource Names   Verbs
 deployments.apps                                []                                    []               [create get list update patch]
 statefulsets.apps                               []                                    []               [create get list update patch]
-</code></pre></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button previous"><a href=/posts/translating-kubernetes/><span class=button__icon>←</span>
-<span class=button__text>Contributing to the k8s documentation</span>
-</a></span><span class="button next"><a href=/posts/exporting-apple-health-data/><span class=button__text>Exporting Apple Health Data</span>
-<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><a href=/ class=logo style=text-decoration:none><span class=logo__mark><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44"><path fill="none" d="M15 8l14.729 14.382L15 35.367"/></svg>
-</span><span class=logo__text>k0rventen:~</span>
-<span class=logo__cursor></span></a><div class=copyright><span>© 2024 Powered by
-<a href=https://gohugo.io target=_blank rel=noopener>Hugo</a></span>
-<span>Theme created by
-<a href=https://twitter.com/panr target=_blank rel=noopener>panr</a></span></div></div></footer><script src=/assets/main.js></script><script src=/assets/prism.js></script></div></body></html>
+</code></pre>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/k8s/">K8s</a></li>
+      <li><a href="/tags/rbac/">Rbac</a></li>
+      <li><a href="/tags/security/">Security</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="/posts/translating-kubernetes/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>Contributing to the k8s documentation</span>
+  </a>
+  <a class="next" href="/posts/exporting-apple-health-data/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Exporting Apple Health Data</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="/">k0rventen&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

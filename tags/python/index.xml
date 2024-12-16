@@ -1,5 +1,40 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>python on</title><link>/tags/python/</link><description>Recent content in python on</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Mon, 27 May 2024 00:00:00 +0000</lastBuildDate><atom:link href="/tags/python/index.xml" rel="self" type="application/rss+xml"/><item><title>E Ink Message frame</title><link>/posts/e-paper-frame/</link><pubDate>Mon, 27 May 2024 00:00:00 +0000</pubDate><guid>/posts/e-paper-frame/</guid><description>
-Transmit paper-like messages from 18000 kms away</description></item><item><title>A PYPI cache proxy to improve our CI workflows</title><link>/posts/a-pip-proxy/</link><pubDate>Sat, 09 Sep 2023 00:00:00 +0000</pubDate><guid>/posts/a-pip-proxy/</guid><description>
-it's like VTEC for `pip install` !</description></item><item><title>Exporting Apple Health Data</title><link>/posts/exporting-apple-health-data/</link><pubDate>Tue, 23 Aug 2022 20:44:24 +0200</pubDate><guid>/posts/exporting-apple-health-data/</guid><description>
-Graph your health using grafana</description></item><item><title>Gatekeeper, a ban &amp; rate limit lib for flask</title><link>/posts/flask-gatekeeper/</link><pubDate>Mon, 27 Jun 2022 00:00:00 +0000</pubDate><guid>/posts/flask-gatekeeper/</guid><description>
-Avoid bursting and brute forcing on your flask app</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Python on k0rventen&#39;s blog</title>
+    <link>/tags/python/</link>
+    <description>Recent content in Python on k0rventen&#39;s blog</description>
+    <generator>Hugo -- 0.139.0</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 27 May 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="/tags/python/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>E Ink Message frame</title>
+      <link>/posts/e-paper-frame/</link>
+      <pubDate>Mon, 27 May 2024 00:00:00 +0000</pubDate>
+      <guid>/posts/e-paper-frame/</guid>
+      <description>Transmit paper-like messages from 18000 kms away</description>
+    </item>
+    <item>
+      <title>A PYPI cache proxy to improve our CI workflows</title>
+      <link>/posts/a-pip-proxy/</link>
+      <pubDate>Sat, 09 Sep 2023 00:00:00 +0000</pubDate>
+      <guid>/posts/a-pip-proxy/</guid>
+      <description>it&amp;#39;s like VTEC for `pip install` !</description>
+    </item>
+    <item>
+      <title>Exporting Apple Health Data</title>
+      <link>/posts/exporting-apple-health-data/</link>
+      <pubDate>Tue, 23 Aug 2022 20:44:24 +0200</pubDate>
+      <guid>/posts/exporting-apple-health-data/</guid>
+      <description>Graph your health using grafana</description>
+    </item>
+    <item>
+      <title>Gatekeeper, a ban &amp; rate limit lib for flask</title>
+      <link>/posts/flask-gatekeeper/</link>
+      <pubDate>Mon, 27 Jun 2022 00:00:00 +0000</pubDate>
+      <guid>/posts/flask-gatekeeper/</guid>
+      <description>Avoid bursting and brute forcing on your flask app</description>
+    </item>
+  </channel>
+</rss>

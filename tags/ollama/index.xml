@@ -1,2 +1,19 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ollama on</title><link>/tags/ollama/</link><description>Recent content in ollama on</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Wed, 20 Mar 2024 00:00:00 +0000</lastBuildDate><atom:link href="/tags/ollama/index.xml" rel="self" type="application/rss+xml"/><item><title>Using a local LLM as a personnal engineering sidekick</title><link>/posts/local-llm/</link><pubDate>Wed, 20 Mar 2024 00:00:00 +0000</pubDate><guid>/posts/local-llm/</guid><description>
-If you're Batman, he's Robin.</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Ollama on k0rventen&#39;s blog</title>
+    <link>/tags/ollama/</link>
+    <description>Recent content in Ollama on k0rventen&#39;s blog</description>
+    <generator>Hugo -- 0.139.0</generator>
+    <language>en</language>
+    <lastBuildDate>Wed, 20 Mar 2024 00:00:00 +0000</lastBuildDate>
+    <atom:link href="/tags/ollama/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Using a local LLM as a personnal engineering sidekick</title>
+      <link>/posts/local-llm/</link>
+      <pubDate>Wed, 20 Mar 2024 00:00:00 +0000</pubDate>
+      <guid>/posts/local-llm/</guid>
+      <description>If you&amp;#39;re Batman, he&amp;#39;s Robin.</description>
+    </item>
+  </channel>
+</rss>
