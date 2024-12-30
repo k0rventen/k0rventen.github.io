@@ -144,83 +144,22 @@
 
 <article class="post-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">Contributing to the k8s documentation
+    <h2 class="entry-hint-parent">Remote Docker
     </h2>
   </header>
   <div class="entry-content">
-    <p>what &amp; why In late 2022 while preparing a workshop around k8s for some french people, I realized that a lot of the k8s documentation isn’t translated in french.
-What to translate and what not to Albeit I’m not a fan of trying to translate the concepts name, ressources or objects revolving around k8s (for example PersistentVolumeClaim should not be translated as it’s used in config files, command lines args etc), it can be beneficial to translate the documentation itself for non-english native to better grasp a given concept.
+    <p>what &amp; why If you want to control a docker instance (the docker daemon) which is not your machine, you can expose it as a TCP socket (instead of a traditionnal UNIX socket) and connect to it remotely using the docker client. We’ll also use SSH forwarding to secure the connection to the docker api if security is a concern.
+how Install docker
+curl -fsSL https://get.docker.com | sh sudo usermod -aG docker $USER then edit the systemd service unit by adding the -H tcp://0.0.0.0:2375 to the ExecStart options.
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2023-01-31 00:00:00 +0000 UTC'>January 31, 2023</span>&nbsp;·&nbsp;2 min&nbsp;·&nbsp;333 words</footer>
-  <a class="entry-link" aria-label="post link to Contributing to the k8s documentation" href="/posts/translating-kubernetes/"></a>
-</article>
-
-<article class="post-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">Add a new external user (or bot) in k8s
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>what &amp; why If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.
-To authenticate, humans can use both the ServiceAccount resource (through a token) and as Users (trough a key and crt). Bots or non-human things should only use ServiceAccounts.
-A word on RBAC Role Based Access Control (RBAC) is a way of separating users from privileges, by introducing roles. Instead of linking users to privlieges directly (Jake has read access on the pods), we link users to roles, which have a given set of privileges (Jake is a developper, and the developper role has read access on pods.). We can now attach multiple users to a role, and albeit it complexifies somewhat the number of ressources,
-...</p>
-  </div>
-  <footer class="entry-footer"><span title='2022-10-03 00:00:00 +0000 UTC'>October 3, 2022</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;948 words</footer>
-  <a class="entry-link" aria-label="post link to Add a new external user (or bot) in k8s" href="/posts/kube-user/"></a>
-</article>
-
-<article class="post-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">Exporting Apple Health Data
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>Example of metrics exported from Apple Health in Grafana: If you want to test the tool, check out the Github repo here
-what &amp; why Having a health tracker such as an apple watch is great, but the default views in the Health app on the iPhone can be too simplistic. We can’t correlate between metrics, define a specific time range, etc..
-But it’s possible to export all of the collected health data in an archive. The goal then is to parse this archive and import it in a more analysis friendly tool. I’m most familiar with the InfluxDB&#43;Grafana stack, so that’s what I’ll be using, but the parsing tool should provide a groundwork for parsing the exported data, and could be adapted to import to other tools.
-...</p>
-  </div>
-  <footer class="entry-footer"><span title='2022-08-23 20:44:24 +0200 +0200'>August 23, 2022</span>&nbsp;·&nbsp;2 min&nbsp;·&nbsp;416 words</footer>
-  <a class="entry-link" aria-label="post link to Exporting Apple Health Data" href="/posts/exporting-apple-health-data/"></a>
-</article>
-
-<article class="post-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">Gatekeeper, a ban &amp; rate limit lib for flask
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>Avoid bursting and brute forcing on your flask app, with RFC6585 compliance
-what &amp; why Rate limiting is a powerful way to restrict the use of a given service by allowing a given rate of requests. Banning on the other hand can be used to block malicious attacks, mainly brute forcing on authentification routes.
-The Flask framework does not provide these functionnalities natively (which is normal, it’s a WSGI app constructor) but we can create a module to perform these features through flask’s primitives.
-...</p>
-  </div>
-  <footer class="entry-footer"><span title='2022-06-27 00:00:00 +0000 UTC'>June 27, 2022</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;766 words</footer>
-  <a class="entry-link" aria-label="post link to Gatekeeper, a ban & rate limit lib for flask" href="/posts/flask-gatekeeper/"></a>
-</article>
-
-<article class="post-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">Autoscaling using KEDA
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>Scale workloads based on the size of a rabbitMQ queue automatically, and have on-demand processing for any tasks
-There should have been a video here but your browser does not seem to support it. A sped up example of autoscaling using KEDA with a rabbitMQ setup
-what &amp; why Kubernetes is a great fit for autoscaling, and it already has a built-in system for doing autoscaling based on the metrics-server infos, like CPU usage for a pod. It’s quite easy to do that using the Horizontal Pod Autoscaler (HPA), and I made a demo system with it (here)[/posts/kube-hpa].
-...</p>
-  </div>
-  <footer class="entry-footer"><span title='2022-05-16 00:00:00 +0000 UTC'>May 16, 2022</span>&nbsp;·&nbsp;6 min&nbsp;·&nbsp;1249 words</footer>
-  <a class="entry-link" aria-label="post link to Autoscaling using KEDA" href="/posts/keda-autoscaling/"></a>
+  <footer class="entry-footer"><span title='2021-07-11 00:00:00 +0000 UTC'>July 11, 2021</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;520 words</footer>
+  <a class="entry-link" aria-label="post link to Remote Docker" href="/posts/remote-docker/"></a>
 </article>
 <footer class="page-footer">
   <nav class="pagination">
     <a class="prev" href="/page/2/">
       «&nbsp;Prev&nbsp;
-    </a>
-    <a class="next" href="/page/4/">Next&nbsp;&nbsp;»
     </a>
   </nav>
 </footer>

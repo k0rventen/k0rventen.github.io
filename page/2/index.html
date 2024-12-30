@@ -144,75 +144,150 @@
 
 <article class="post-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">A smart city demonstrator
+    <h2 class="entry-hint-parent">Contributing to the k8s documentation
     </h2>
   </header>
   <div class="entry-content">
-    <p>A smart city model that I helped build a few years back, to better explain what IoT could mean for a city:
-what &amp; why When I arrived at $old_job in 2019, one of my first project was to build a small scale, smart city model that could :
-be tranported anywhere, be installed on a table easily show what improvements to city life could be made using IoT and be pretty to lure people on our stands ;) The actual model was built by architecture students, with whom I devised a plan to integrate various sensors, LEDs and interactive elements to play with. The whole thing took around a week to be finished.
+    <p>what &amp; why In late 2022 while preparing a workshop around k8s for some french people, I realized that a lot of the k8s documentation isn’t translated in french.
+What to translate and what not to Albeit I’m not a fan of trying to translate the concepts name, ressources or objects revolving around k8s (for example PersistentVolumeClaim should not be translated as it’s used in config files, command lines args etc), it can be beneficial to translate the documentation itself for non-english native to better grasp a given concept.
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2024-01-10 00:00:00 +0000 UTC'>January 10, 2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;904 words</footer>
-  <a class="entry-link" aria-label="post link to A smart city demonstrator" href="/posts/smartcity/"></a>
+  <footer class="entry-footer"><span title='2023-01-31 00:00:00 +0000 UTC'>January 31, 2023</span>&nbsp;·&nbsp;2 min&nbsp;·&nbsp;333 words</footer>
+  <a class="entry-link" aria-label="post link to Contributing to the k8s documentation" href="/posts/translating-kubernetes/"></a>
 </article>
 
 <article class="post-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">An E-Ink watch
+    <h2 class="entry-hint-parent">Add a new external user (or bot) in k8s
     </h2>
   </header>
   <div class="entry-content">
-    <p>An ‘almost 1 month-battery-life-e-ink-display-watch’ that you can build/program.
-what &amp; why This summer I came across this project: https://sqfmi.com/watchy/. It’s a watch with an e-ink display, and a esp32 based platform that you can build upon. And you even have to build it yourself once it arrives in the mail ! And it’s “open source hardware and software” !
-So i ordered one, and played with it when it arrived. The websites claims you can even do OTA update to the watch faces from your phone ! Disclaimer, I never managed to make this feature work. But it’s a very cool project nonetheless.
+    <p>what &amp; why If you need to give access to your cluster to either another human or for a given service, you should create a dedicated account for it. This is how to do it.
+To authenticate, humans can use both the ServiceAccount resource (through a token) and as Users (trough a key and crt). Bots or non-human things should only use ServiceAccounts.
+A word on RBAC Role Based Access Control (RBAC) is a way of separating users from privileges, by introducing roles. Instead of linking users to privlieges directly (Jake has read access on the pods), we link users to roles, which have a given set of privileges (Jake is a developper, and the developper role has read access on pods.). We can now attach multiple users to a role, and albeit it complexifies somewhat the number of ressources,
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2023-11-27 00:00:00 +0000 UTC'>November 27, 2023</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;467 words</footer>
-  <a class="entry-link" aria-label="post link to An E-Ink watch" href="/posts/watchy/"></a>
+  <footer class="entry-footer"><span title='2022-10-03 00:00:00 +0000 UTC'>October 3, 2022</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;948 words</footer>
+  <a class="entry-link" aria-label="post link to Add a new external user (or bot) in k8s" href="/posts/kube-user/"></a>
 </article>
 
 <article class="post-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">A PYPI cache proxy to improve our CI workflows
+    <h2 class="entry-hint-parent">Exporting Apple Health Data
     </h2>
   </header>
   <div class="entry-content">
-    <p>what &amp; why a bit of context At $dayjob, our backend stack is 99% python based, and deployed through containers on k8s clusters. That means that a lot of time spent in our CI is downloading and installing librairies and modules from Pypi, the Python Package Index.
-For the sake of data sovereignty and integrity, our CI workers are deployed on-prem, using Gitlab Runners. But due to the variety of projects, we are depending on hundreds of various libraries, ranging from fastapi/flask and their related libraries, to more esoteric ones like pysnmp, yang, scrapli, netmiko/paramiko..
+    <p>Example of metrics exported from Apple Health in Grafana: If you want to test the tool, check out the Github repo here
+what &amp; why Having a health tracker such as an apple watch is great, but the default views in the Health app on the iPhone can be too simplistic. We can’t correlate between metrics, define a specific time range, etc..
+But it’s possible to export all of the collected health data in an archive. The goal then is to parse this archive and import it in a more analysis friendly tool. I’m most familiar with the InfluxDB&#43;Grafana stack, so that’s what I’ll be using, but the parsing tool should provide a groundwork for parsing the exported data, and could be adapted to import to other tools.
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2023-09-09 00:00:00 +0000 UTC'>September 9, 2023</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;1318 words</footer>
-  <a class="entry-link" aria-label="post link to A PYPI cache proxy to improve our CI workflows" href="/posts/a-pip-proxy/"></a>
+  <footer class="entry-footer"><span title='2022-08-23 20:44:24 +0200 +0200'>August 23, 2022</span>&nbsp;·&nbsp;2 min&nbsp;·&nbsp;416 words</footer>
+  <a class="entry-link" aria-label="post link to Exporting Apple Health Data" href="/posts/exporting-apple-health-data/"></a>
 </article>
 
 <article class="post-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">Reset a lost account password using docker
+    <h2 class="entry-hint-parent">Gatekeeper, a ban &amp; rate limit lib for flask
     </h2>
   </header>
   <div class="entry-content">
-    <p>Story time A funny thing happened today.
-A remote Raspberry Pi deployed a few years back for $client was having issues connecting with another system. When setting up the Pi, I thought of sharing my ssh key from my laptop so I could SSH into it passwordless-style.
-But it didn’t occured to younger (and stupider apparently) me to save the password for that account somewhere. And on that system (and generally on Debian I believe), standard accounts are in the sudo group, but not with passwordless access, meaning you can run sudo but you have to enter your session’s password.
+    <p>Avoid bursting and brute forcing on your flask app, with RFC6585 compliance
+what &amp; why Rate limiting is a powerful way to restrict the use of a given service by allowing a given rate of requests. Banning on the other hand can be used to block malicious attacks, mainly brute forcing on authentification routes.
+The Flask framework does not provide these functionnalities natively (which is normal, it’s a WSGI app constructor) but we can create a module to perform these features through flask’s primitives.
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2023-08-09 00:00:00 +0000 UTC'>August 9, 2023</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;498 words</footer>
-  <a class="entry-link" aria-label="post link to Reset a lost account password using docker" href="/posts/reset-password-with-docker/"></a>
+  <footer class="entry-footer"><span title='2022-06-27 00:00:00 +0000 UTC'>June 27, 2022</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;766 words</footer>
+  <a class="entry-link" aria-label="post link to Gatekeeper, a ban & rate limit lib for flask" href="/posts/flask-gatekeeper/"></a>
 </article>
 
 <article class="post-entry"> 
   <header class="entry-header">
-    <h2 class="entry-hint-parent">Remote development in Kubernetes With Coder
+    <h2 class="entry-hint-parent">Autoscaling using KEDA
     </h2>
   </header>
   <div class="entry-content">
-    <p>A fleet of remote development environments (with docker, fish shell, and even minikube) running in your kubernetes cluster, accessible through VS Code in the browser !
-There should have been a video here but your browser does not seem to support it. What &amp; why This setup is the v2 of a previous post on remote dev env using jupyterlab I made a year and a half ago. Thee OG setup was functionnal, but it had some issues, mainly around user management, container lifecycle and persistent data handling. As $dayjob has grown, so has the infrastructure, and so has the development needs. So a new solution was required.
+    <p>Scale workloads based on the size of a rabbitMQ queue automatically, and have on-demand processing for any tasks
+There should have been a video here but your browser does not seem to support it. A sped up example of autoscaling using KEDA with a rabbitMQ setup
+what &amp; why Kubernetes is a great fit for autoscaling, and it already has a built-in system for doing autoscaling based on the metrics-server infos, like CPU usage for a pod. It’s quite easy to do that using the Horizontal Pod Autoscaler (HPA), and I made a demo system with it (here)[/posts/kube-hpa].
 ...</p>
   </div>
-  <footer class="entry-footer"><span title='2023-06-22 00:00:00 +0000 UTC'>June 22, 2023</span>&nbsp;·&nbsp;10 min&nbsp;·&nbsp;2061 words</footer>
-  <a class="entry-link" aria-label="post link to Remote development in Kubernetes With Coder" href="/posts/remote-env-with-coder/"></a>
+  <footer class="entry-footer"><span title='2022-05-16 00:00:00 +0000 UTC'>May 16, 2022</span>&nbsp;·&nbsp;6 min&nbsp;·&nbsp;1249 words</footer>
+  <a class="entry-link" aria-label="post link to Autoscaling using KEDA" href="/posts/keda-autoscaling/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">A basic, security-minded k8s app setup
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>what &amp; why The CKS (Certified Kubernetes Security Specialist) is a great resource for knowing how to secure a kubernetes cluster. It covers a lot of topics, from the cluster side (admission controller, webhooks, audit), app side (Pod Security Policies) and supply chain (image scanning). Another great resource for this is the Kubernetes Hardening Guidance by NSA &amp; CISA
+But some of the concepts defined in both these resources are very case-specific, and require a lot of time, tools &amp; effort to setup. In some environnements, it might be infeasible to deploy each and every one of those concepts. But that doesn’t mean we should avoid some basic security-minded steps when deploying to k8s. I won’t cover things on the cluster-side (audit, tools like falco, or admission controllers), but how you can improve the security of your front-facing app by adding a few lines here and there.
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2022-03-09 00:00:00 +0000 UTC'>March 9, 2022</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;1280 words</footer>
+  <a class="entry-link" aria-label="post link to A basic, security-minded k8s app setup" href="/posts/basic-k8s-security/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Remote, multi-user VSCode running in kubernetes
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>a fully featured, multi-user, dev env running on your k8s cluster that can coldboot in less than 10s
+There should have been a video here but your browser does not seem to support it. what &amp; why I use VS Code as my primary IDE for everything, from python development, to kubernetes/helm chart generation, even when building stuff for raspberry pico or arduino.
+My daily workflow at work is :
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2022-01-01 00:00:00 +0000 UTC'>January 1, 2022</span>&nbsp;·&nbsp;8 min&nbsp;·&nbsp;1519 words</footer>
+  <a class="entry-link" aria-label="post link to Remote, multi-user VSCode running in kubernetes" href="/posts/remote-mulituser-vscode-kubernetes/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Reducing Docker Images Size Using Xz
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>what &amp; why During a project, I needed to build a container that could render graphs based on pretty big arrays, using plotly, kaleido and pandas.
+The arrays would be DataFrames from pandas, turned into graphs through plotly, and then renderer as jpeg images using kaleido.
+This is not uncommon to have pretty big dependencies in a python project, but when pulling these pacakges locally, it took quite a long time, so I checked the size of each :
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2021-09-24 00:00:00 +0000 UTC'>September 24, 2021</span>&nbsp;·&nbsp;4 min&nbsp;·&nbsp;794 words</footer>
+  <a class="entry-link" aria-label="post link to Reducing Docker Images Size Using Xz" href="/posts/reducing-docker-images-size-using-xz/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">A Monkey in the Cluster
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>what &amp; why From principlesofchaos.org :
+Advances in large-scale, distributed software systems are changing the game for software engineering. As an industry, we are quick to adopt practices that increase flexibility of development and velocity of deployment. An urgent question follows on the heels of these benefits: How much confidence we can have in the complex systems that we put into production?
+Applying this philosophy to kube is a very pertinent thing to do, but how ? The same website defines Chaos Engineering as the discipline of experimenting on a system in order to build confidence in the system’s capability to withstand turbulent conditions in production.
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2021-08-11 00:00:00 +0000 UTC'>August 11, 2021</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;467 words</footer>
+  <a class="entry-link" aria-label="post link to A Monkey in the Cluster" href="/posts/a-monkey-in-the-cluster/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Exploring Kube&#39;s Horizontal Pod Autoscaler
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>what &amp; why Let’s say you have a scalable architecture (like a server/worker model), and you want autoscaling to happens automatically based on the workers CPU usage, which is useful is some scenarios. Kubernetes has an Horizontal Pod Autoscaler feature that we can utilize to do just that !
+how First, let’s talk requirements. You’ll need :
+a k8s cluster (k0s, minikube or microk8s), kubectl installed and configured to talk to your cluster metrics-server deployed. This will provide the metrics necessary for the autoscaling algorithm to work. Check on your particular provider how to do so. example architecture Here is an example architecture that can benefit from scaling :
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2021-07-27 00:00:00 +0000 UTC'>July 27, 2021</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;930 words</footer>
+  <a class="entry-link" aria-label="post link to Exploring Kube&#39;s Horizontal Pod Autoscaler" href="/posts/kube-hpa/"></a>
 </article>
 <footer class="page-footer">
   <nav class="pagination">

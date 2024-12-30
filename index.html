@@ -231,6 +231,79 @@ But two jobs from the same repo might not be using the same CI runner (most of t
   <footer class="entry-footer"><span title='2024-02-19 00:00:00 +0000 UTC'>February 19, 2024</span>&nbsp;·&nbsp;10 min&nbsp;·&nbsp;2083 words</footer>
   <a class="entry-link" aria-label="post link to Remote layer cache for multiple docker CI runners" href="/posts/shared-docker-registry-ci/"></a>
 </article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">A smart city demonstrator
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>A smart city model that I helped build a few years back, to better explain what IoT could mean for a city:
+what &amp; why When I arrived at $old_job in 2019, one of my first project was to build a small scale, smart city model that could :
+be tranported anywhere, be installed on a table easily show what improvements to city life could be made using IoT and be pretty to lure people on our stands ;) The actual model was built by architecture students, with whom I devised a plan to integrate various sensors, LEDs and interactive elements to play with. The whole thing took around a week to be finished.
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2024-01-10 00:00:00 +0000 UTC'>January 10, 2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;904 words</footer>
+  <a class="entry-link" aria-label="post link to A smart city demonstrator" href="/posts/smartcity/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">An E-Ink watch
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>An ‘almost 1 month-battery-life-e-ink-display-watch’ that you can build/program.
+what &amp; why This summer I came across this project: https://sqfmi.com/watchy/. It’s a watch with an e-ink display, and a esp32 based platform that you can build upon. And you even have to build it yourself once it arrives in the mail ! And it’s “open source hardware and software” !
+So i ordered one, and played with it when it arrived. The websites claims you can even do OTA update to the watch faces from your phone ! Disclaimer, I never managed to make this feature work. But it’s a very cool project nonetheless.
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-11-27 00:00:00 +0000 UTC'>November 27, 2023</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;467 words</footer>
+  <a class="entry-link" aria-label="post link to An E-Ink watch" href="/posts/watchy/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">A PYPI cache proxy to improve our CI workflows
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>what &amp; why a bit of context At $dayjob, our backend stack is 99% python based, and deployed through containers on k8s clusters. That means that a lot of time spent in our CI is downloading and installing librairies and modules from Pypi, the Python Package Index.
+For the sake of data sovereignty and integrity, our CI workers are deployed on-prem, using Gitlab Runners. But due to the variety of projects, we are depending on hundreds of various libraries, ranging from fastapi/flask and their related libraries, to more esoteric ones like pysnmp, yang, scrapli, netmiko/paramiko..
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-09-09 00:00:00 +0000 UTC'>September 9, 2023</span>&nbsp;·&nbsp;7 min&nbsp;·&nbsp;1318 words</footer>
+  <a class="entry-link" aria-label="post link to A PYPI cache proxy to improve our CI workflows" href="/posts/a-pip-proxy/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Reset a lost account password using docker
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>Story time A funny thing happened today.
+A remote Raspberry Pi deployed a few years back for $client was having issues connecting with another system. When setting up the Pi, I thought of sharing my ssh key from my laptop so I could SSH into it passwordless-style.
+But it didn’t occured to younger (and stupider apparently) me to save the password for that account somewhere. And on that system (and generally on Debian I believe), standard accounts are in the sudo group, but not with passwordless access, meaning you can run sudo but you have to enter your session’s password.
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-08-09 00:00:00 +0000 UTC'>August 9, 2023</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;498 words</footer>
+  <a class="entry-link" aria-label="post link to Reset a lost account password using docker" href="/posts/reset-password-with-docker/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Remote development in Kubernetes With Coder
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>A fleet of remote development environments (with docker, fish shell, and even minikube) running in your kubernetes cluster, accessible through VS Code in the browser !
+There should have been a video here but your browser does not seem to support it. What &amp; why This setup is the v2 of a previous post on remote dev env using jupyterlab I made a year and a half ago. Thee OG setup was functionnal, but it had some issues, mainly around user management, container lifecycle and persistent data handling. As $dayjob has grown, so has the infrastructure, and so has the development needs. So a new solution was required.
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-06-22 00:00:00 +0000 UTC'>June 22, 2023</span>&nbsp;·&nbsp;10 min&nbsp;·&nbsp;2061 words</footer>
+  <a class="entry-link" aria-label="post link to Remote development in Kubernetes With Coder" href="/posts/remote-env-with-coder/"></a>
+</article>
 <footer class="page-footer">
   <nav class="pagination">
     <a class="next" href="/page/2/">Next&nbsp;&nbsp;»
