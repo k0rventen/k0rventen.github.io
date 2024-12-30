@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>State of the Setup 2024 | k0rventen&#39;s blog</title>
+<meta name="keywords" content="selfhosted, pi, docker">
+<meta name="description" content="What&#39;s running at home">
+<meta name="author" content="">
+<link rel="canonical" href="/posts/state-of-the-setup-2024/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.d6fcd20a4fb86efa4dfac8ec95da60244cc8871042183da1ef28e3a762ad79c8.css" integrity="sha256-1vzSCk&#43;4bvpN&#43;sjsldpgJEzIhxBCGD2h7yjjp2Ktecg=" rel="preload stylesheet" as="style">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="/posts/state-of-the-setup-2024/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:url" content="/posts/state-of-the-setup-2024/">
+  <meta property="og:site_name" content="k0rventen&#39;s blog">
+  <meta property="og:title" content="State of the Setup 2024">
+  <meta property="og:description" content="What&#39;s running at home">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-12-17T21:33:39+01:00">
+    <meta property="article:modified_time" content="2024-12-17T21:33:39+01:00">
+    <meta property="article:tag" content="Selfhosted">
+    <meta property="article:tag" content="Pi">
+    <meta property="article:tag" content="Docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="State of the Setup 2024">
+<meta name="twitter:description" content="What&#39;s running at home">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "/posts/"
+    }
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "State of the Setup 2024",
+      "item": "/posts/state-of-the-setup-2024/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "State of the Setup 2024",
+  "name": "State of the Setup 2024",
+  "description": "What's running at home",
+  "keywords": [
+    "selfhosted", "pi", "docker"
+  ],
+  "articleBody": "I always had some form of homelab/servers running at home. For a while I had a k8s cluster composed of 3 Raspberry pi 4(8g), then a more traditionnal x86 pc, then back on some raspberry pis..\nI changed quite a few things this year, having moved from macOS to linux on my work computer, and my own macbook pro 2015 being replaced by an iPad for media consumption, and my linux desktop for gaming/dev etc..\nI’ve also decided to dive into selfhosting a bit more. So here is my complete, end of 2024 setup:\na raspberry pi 4. 8Go of RAM, a 128Go SD card. that’s it. No need for a complex k8s cluster, with 20 VMs and 5 control planes. The pi is running raspberry pi OS 64b lite. I removed some stuff:\nsudo apt purge dphys-swapfile avahi-daemon modemmanager triggerhappy --auto-remove mainly dphys-swapfile, to avoid swapping to the sd card. I’ve had raspberry pis for a decade now, and none of my sd cards have failed, I believe in part due to not swapping on them. Moreover, the 8Go of RAM of this PI is way more than enough to run what I need.\nIt’s running a docker compose based stack. Here is an overview:\nBasically, it’s my main server that handles:\nDNS \u0026 DHCP on my LAN, using adguard DNS for my tailscale network, using a split horizon DNS setup (again with adguard) Homekit integration for some very specific things using homebridge 3D printing server for my ender3v2 using octoprint centralised password management using vaultwarden (and bitwarden’s extensions on all my devices) a simple network share with samba A digital vault for my important documents using paperless-ngx photo and video management with immich A Magic-Mirror server Local GitHub and CI/CD server using gitea basic monitoring of services, servers and such using a TIG stack telegraf/influx/grafana a remote code-server instance for easy development on the pi All of the above are reverse proxied with SSL termination using traefik, adn the CA/certs are generated with minica All of this is running, and the pi isn’t doing much:\nRegarding the compose stack, it’s all in a services/ folder:\n✓ pi4-carbon:~/services \u003e tree -L 1 . ├── adguard ├── adguard-external ├── docker-compose.yml ├── gitea ├── grafana ├── homebridge ├── immich ├── influx ├── magic-mirror ├── octoprint ├── paperless ├── samba ├── telegraf ├── traefik └── vaultwarden Each folder contains the data and configuration for that specific service, for example grafana:\n✓ pi4-carbon:~/services \u003e tree -L 2 grafana/ grafana/ ├── conf │ └── grafana.ini └── data ├── alerting ├── csv ├── file-collections ├── grafana-apiserver ├── grafana.db ├── pdf ├── plugins └── png And here is an excerpt of the docker-compose:\nservices: # Reverse proxy traefik: image: traefik:comte restart: always ports: - \"80:80\" - \"443:443\" volumes: - ./traefik/traefik.yaml:/etc/traefik/traefik.yaml - ./traefik/certs/:/certs/ - /var/run/docker.sock:/var/run/docker.sock # DNS blackhole # network mode because its acting as a DNS and DHCP server on the LAN adguard: image: adguard/adguardhome restart: always network_mode: host volumes: - ./adguard/conf:/opt/adguardhome/conf - ./adguard/data:/opt/adguardhome/work # Split horizon DNS for the tailscale network # this is configured as the DNS server for the tailnet # and redirects the same internal domains to the tailscale IPs # instead of the local ones adguard-external: image: adguard/adguardhome restart: always ports: - 192.168.1.1:11081:11081 - 100.101.101.101:53:53/udp volumes: - ./adguard-external/conf:/opt/adguardhome/conf - ./adguard-external/data:/opt/adguardhome/work ... Around this central server are a few components:\nthe pi is part of my tailscale mesh network, and is configured to be the DNS. This allows my roaming phone/iPad to 1. get access to all my services wherever I am, like passwords, files etc.. and 2. have DNS queries go through my adblock, removing ads also on the go. a usb-attached SSD, for daily encrypted backup using restic The configuration is done through some systemd units: A mnt-backup.mount for the disk:\n[Unit] Description=Restic Backup External Disk mount [Mount] What=/dev/disk/by-label/backup Where=/mnt/backup Type=ext4 Options=defaults [Install] WantedBy=multi-user.target A restic.service that starts the backup\n[Unit] Description=Automated backup After=mnt-backup.mount BindsTo=mnt-backup.mount PropagatesStopTo=mnt-backup.mount [Install] WantedBy=default.target [Service] Type=simple Environment=\"HOME=/home/coco\" WorkingDirectory=/home/coco ExecStart=restic -p %d/restic -r /mnt/backup/backups backup . SetCredentialEncrypted=restic: \\ Whxqht+dQJax1aZeCGLxm... And a restic.timer that calls the service\n[Unit] Description=Run backup every day at 2 AM [Timer] OnCalendar=02:00 [Install] WantedBy=timers.target I’ve also configured a rpi with a hard drive at my parent’s, also part of my tailnet. This is for a remote encrypted backup, using restic as well. Same setup, but the units are a bit different, with a restic-offsite.service:\n[Unit] Description=Automated backup Wants=network.target After=network-online.target [Install] WantedBy=default.target [Service] Type=oneshot Environment=\"HOME=/home/coco\" WorkingDirectory=/home/coco ExecStart=ssh pi@100.64.95.65 sudo systemctl start mnt-backup.mount ExecStart=restic -p %d/restic -r sftp:pi@100.64.95.65:/mnt/backup/backups backup . ExecStart=ssh pi@100.64.95.65 sudo systemctl stop mnt-backup.mount SetCredentialEncrypted=restic: \\ Whxqht+dQJax... And a restic-offsite.timer:\n[Unit] Description=Run external backup every day at 3 AM [Timer] OnCalendar=*-*-* 03:00 [Install] WantedBy=timers.target On the receiving Pi, i have a similar mnt-backup.mount that mounts the usb hdd when needed. The SetCredentialEncrypted value is created using systemd-ask-password -n | systemd-creds encrypt --name=restic -p - -.\nAnd that’s pretty much it. Some automation are handled through Gitea Actions, using a schedule:\non: schedule: - cron: '30 10 * * 1-5' jobs: run_on_schedule: runs-on: ubuntu-latest steps: - name: Pull image and run run: | do stuff And a final automated thing is the badging at $work, which is triggered through a iOS Shortcut, that enables tailscale on my phone, uses the ‘Run script over SSH’ to start a playwright python script on my server to log and clock in.\nFinally, a look at my Grafana dashboard. The monitoring part isn’t really what i’m interested in, i mostly glance at it to spot something out of the ordinary, but I’ve configured some shortcuts for the most used services up top:\nWe’ll see what changes in 2025 ! Happy new year !\n",
+  "wordCount" : "945",
+  "inLanguage": "en",
+  "datePublished": "2024-12-17T21:33:39+01:00",
+  "dateModified": "2024-12-17T21:33:39+01:00",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "/posts/state-of-the-setup-2024/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "k0rventen's blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="/" accesskey="h" title="&gt; k0rventen: ~ (Alt + H)">&gt; k0rventen: ~</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="/links" title="links">
+                    <span>links</span>
+                </a>
+            </li>
+            <li>
+                <a href="/posts" title="posts">
+                    <span>posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="/search" title="search (Alt &#43; /)" accesskey=/>
+                    <span>search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="/">Home</a>&nbsp;»&nbsp;<a href="/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      State of the Setup 2024
+    </h1>
+    <div class="post-description">
+      What&#39;s running at home
+    </div>
+    <div class="post-meta"><span title='2024-12-17 21:33:39 +0100 +0100'>December 17, 2024</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;945 words
+
+</div>
+  </header> 
+
+  <div class="post-content"><p>I always had some form of homelab/servers running at home. For a while I had a k8s cluster composed of 3 Raspberry pi 4(8g), then a more traditionnal x86 pc, then back on some raspberry pis..</p>
+<p>I changed quite a few things this year, having moved from macOS to linux on my work computer, and my own macbook pro 2015 being replaced by an iPad for media consumption, and my linux desktop for gaming/dev etc..</p>
+<p>I&rsquo;ve also decided to dive into selfhosting a bit more. So here is my complete, end of 2024 setup:</p>
+<ul>
+<li>a raspberry pi 4. 8Go of RAM, a 128Go SD card.</li>
+</ul>
+<p>that&rsquo;s it. No need for a complex k8s cluster, with 20 VMs and 5 control planes.
+The pi is running raspberry pi OS 64b lite.
+I removed some stuff:</p>
+<pre tabindex="0"><code>sudo apt purge dphys-swapfile avahi-daemon modemmanager triggerhappy --auto-remove
+</code></pre><p>mainly dphys-swapfile, to avoid swapping to the sd card. I&rsquo;ve had raspberry pis for a decade now, and none of my sd cards have failed, I believe in part due to not swapping on them. Moreover, the 8Go of RAM of this PI is way more than enough to run what I need.</p>
+<p>It&rsquo;s running a docker compose based stack. Here is an overview:</p>
+<p><img alt="setup" loading="lazy" src="/setup-2024/setup-2024.png"></p>
+<p>Basically, it&rsquo;s my main server that handles:</p>
+<ul>
+<li>DNS &amp; DHCP on my LAN, using <a href="https://github.com/AdguardTeam/AdGuardHome">adguard</a></li>
+<li>DNS for my tailscale network, using a split horizon DNS setup (again with adguard)</li>
+<li>Homekit integration for some very specific things using <a href="https://github.com/homebridge/homebridge">homebridge</a></li>
+<li>3D printing server for my ender3v2 using <a href="https://github.com/OctoPrint/OctoPrint">octoprint</a></li>
+<li>centralised password management using <a href="https://github.com/dani-garcia/vaultwarden">vaultwarden</a> (and bitwarden&rsquo;s extensions on all my devices)</li>
+<li>a simple network share with <a href="https://www.samba.org/">samba</a></li>
+<li>A digital vault for my important documents using <a href="https://github.com/paperless-ngx/paperless-ngx">paperless-ngx</a></li>
+<li>photo and video management with <a href="https://github.com/immich-app/immich">immich</a></li>
+<li>A <a href="https://github.com/MagicMirrorOrg/MagicMirror">Magic-Mirror</a> server</li>
+<li>Local GitHub and CI/CD server using <a href="https://github.com/go-gitea/gitea">gitea</a></li>
+<li>basic monitoring of services, servers and such using a TIG stack <a href="https://github.com/influxdata/telegraf">telegraf</a>/<a href="https://github.com/influxdata/influxdb">influx</a>/<a href="https://github.com/grafana/grafana">grafana</a></li>
+<li>a remote <a href="https://github.com/coder/code-server">code-server</a> instance for easy development on the pi</li>
+<li>All of the above are reverse proxied with SSL termination using <a href="https://github.com/traefik/traefik">traefik</a>, adn the CA/certs are generated with <a href="https://github.com/jsha/minica">minica</a></li>
+</ul>
+<p>All of this is running, and the pi isn&rsquo;t doing much:</p>
+<p><img alt="usage" loading="lazy" src="/setup-2024/usage.png"></p>
+<p>Regarding the compose stack, it&rsquo;s all in a <code>services/</code> folder:</p>
+<pre tabindex="0"><code>✓ pi4-carbon:~/services
+&gt; tree -L 1
+.
+├── adguard
+├── adguard-external
+├── docker-compose.yml
+├── gitea
+├── grafana
+├── homebridge
+├── immich
+├── influx
+├── magic-mirror
+├── octoprint
+├── paperless
+├── samba
+├── telegraf
+├── traefik
+└── vaultwarden
+</code></pre><p>Each folder contains the data and configuration for that specific service, for example grafana:</p>
+<pre tabindex="0"><code>✓ pi4-carbon:~/services
+&gt; tree -L 2 grafana/
+grafana/
+├── conf
+│   └── grafana.ini
+└── data
+    ├── alerting
+    ├── csv
+    ├── file-collections
+    ├── grafana-apiserver
+    ├── grafana.db
+    ├── pdf
+    ├── plugins
+    └── png
+</code></pre><p>And here is an excerpt of the docker-compose:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">services</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Reverse proxy</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">traefik</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">traefik:comte</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">always</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;80:80&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="s2">&#34;443:443&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">./traefik/traefik.yaml:/etc/traefik/traefik.yaml</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">./traefik/certs/:/certs/</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">/var/run/docker.sock:/var/run/docker.sock</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># DNS blackhole </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># network mode because its acting as a DNS and DHCP server on the LAN</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">adguard</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">adguard/adguardhome</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">always</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">network_mode</span><span class="p">:</span><span class="w"> </span><span class="l">host</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">./adguard/conf:/opt/adguardhome/conf</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">./adguard/data:/opt/adguardhome/work</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Split horizon DNS for the tailscale network</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># this is configured as the DNS server for the tailnet</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># and redirects the same internal domains to the tailscale IPs</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># instead of the local ones</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">adguard-external</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">adguard/adguardhome</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">restart</span><span class="p">:</span><span class="w"> </span><span class="l">always</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="m">192.168.1.1</span><span class="p">:</span><span class="m">11081</span><span class="p">:</span><span class="m">11081</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="m">100.101.101.101</span><span class="p">:</span><span class="m">53</span><span class="p">:</span><span class="m">53</span><span class="l">/udp</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">./adguard-external/conf:/opt/adguardhome/conf</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">./adguard-external/data:/opt/adguardhome/work</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="l">...</span><span class="w">
+</span></span></span></code></pre></div><p>Around this central server are a few components:</p>
+<ul>
+<li>the pi is part of my <a href="https://tailscale.com/">tailscale</a> mesh network, and is configured to be the DNS. This allows my roaming phone/iPad to 1. get access to all my services wherever I am, like passwords, files etc.. and 2. have DNS queries go through my adblock, removing ads also on the go.</li>
+<li>a usb-attached SSD, for daily encrypted backup using <a href="https://github.com/restic/restic">restic</a>
+The configuration is done through some systemd units:</li>
+</ul>
+<p>A <code>mnt-backup.mount</code> for the disk:</p>
+<pre tabindex="0"><code>[Unit]
+Description=Restic Backup External Disk mount
+
+[Mount]
+What=/dev/disk/by-label/backup
+Where=/mnt/backup
+Type=ext4
+Options=defaults
+
+[Install]
+WantedBy=multi-user.target
+</code></pre><p>A <code>restic.service</code> that starts the backup</p>
+<pre tabindex="0"><code>[Unit]
+Description=Automated backup
+
+After=mnt-backup.mount
+BindsTo=mnt-backup.mount
+PropagatesStopTo=mnt-backup.mount
+
+[Install]
+WantedBy=default.target
+
+[Service]
+Type=simple
+Environment=&#34;HOME=/home/coco&#34;
+WorkingDirectory=/home/coco
+ExecStart=restic -p %d/restic -r /mnt/backup/backups backup .
+SetCredentialEncrypted=restic: \
+        Whxqht+dQJax1aZeCGLxm...
+</code></pre><p>And a <code>restic.timer</code> that calls the service</p>
+<pre tabindex="0"><code>[Unit]
+Description=Run backup every day at 2 AM
+[Timer]
+OnCalendar=02:00
+[Install]
+WantedBy=timers.target
+</code></pre><p>I&rsquo;ve also configured a rpi with a hard drive at my parent&rsquo;s, also part of my tailnet. This is for a remote encrypted backup, using restic as well. Same setup, but the units are a bit different, with a <code>restic-offsite.service</code>:</p>
+<pre tabindex="0"><code>[Unit]
+Description=Automated backup
+Wants=network.target
+After=network-online.target
+
+[Install]
+WantedBy=default.target
+
+[Service]
+Type=oneshot
+Environment=&#34;HOME=/home/coco&#34;
+WorkingDirectory=/home/coco
+
+ExecStart=ssh pi@100.64.95.65 sudo systemctl start mnt-backup.mount
+ExecStart=restic -p %d/restic -r sftp:pi@100.64.95.65:/mnt/backup/backups backup .
+ExecStart=ssh pi@100.64.95.65 sudo systemctl stop mnt-backup.mount
+
+SetCredentialEncrypted=restic: \
+        Whxqht+dQJax...
+</code></pre><p>And a <code>restic-offsite.timer</code>:</p>
+<pre tabindex="0"><code>[Unit]
+Description=Run external backup every day at 3 AM
+[Timer]
+OnCalendar=*-*-* 03:00
+[Install]
+WantedBy=timers.target
+</code></pre><p>On the receiving Pi, i have a similar <code>mnt-backup.mount</code> that mounts the usb hdd when needed.
+The <code>SetCredentialEncrypted</code> value is created using <code>systemd-ask-password -n | systemd-creds encrypt --name=restic -p - -</code>.</p>
+<p>And that&rsquo;s pretty much it. Some automation are handled through Gitea Actions, using a schedule:</p>
+<pre tabindex="0"><code>on:
+  schedule:
+    - cron: &#39;30 10 * * 1-5&#39;
+
+jobs:
+  run_on_schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull image and run 
+        run: |
+          do stuff
+</code></pre><p>And a final automated thing is the badging at $work, which is triggered through a iOS Shortcut, that enables tailscale on my phone, uses the &lsquo;Run script over SSH&rsquo; to start a playwright python script on my server to log and clock in.</p>
+<p>Finally, a look at my Grafana dashboard. The monitoring part isn&rsquo;t really what i&rsquo;m interested in, i mostly glance at it to spot something out of the ordinary, but I&rsquo;ve configured some shortcuts for the most used services up top:</p>
+<p><img alt="dashboard" loading="lazy" src="/setup-2024/dash.png"></p>
+<p>We&rsquo;ll see what changes in 2025 ! Happy new year !</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="/tags/selfhosted/">Selfhosted</a></li>
+      <li><a href="/tags/pi/">Pi</a></li>
+      <li><a href="/tags/docker/">Docker</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="/posts/tesla-lock-sounds/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Randomized Tesla Lock Sounds using a Pi</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2024 <a href="/">k0rventen&#39;s blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

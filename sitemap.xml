@@ -2,10 +2,25 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>/tags/docker/</loc>
+    <lastmod>2024-12-17T21:33:39+01:00</lastmod>
+  </url><url>
     <loc>/</loc>
     <lastmod>2024-12-17T21:33:39+01:00</lastmod>
   </url><url>
+    <loc>/tags/pi/</loc>
+    <lastmod>2024-12-17T21:33:39+01:00</lastmod>
+  </url><url>
     <loc>/posts/</loc>
+    <lastmod>2024-12-17T21:33:39+01:00</lastmod>
+  </url><url>
+    <loc>/tags/selfhosted/</loc>
+    <lastmod>2024-12-17T21:33:39+01:00</lastmod>
+  </url><url>
+    <loc>/posts/state-of-the-setup-2024/</loc>
+    <lastmod>2024-12-17T21:33:39+01:00</lastmod>
+  </url><url>
+    <loc>/tags/</loc>
     <lastmod>2024-12-17T21:33:39+01:00</lastmod>
   </url><url>
     <loc>/tags/exfat/</loc>
@@ -18,9 +33,6 @@
     <lastmod>2024-06-24T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/raspberrypi/</loc>
-    <lastmod>2024-06-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/</loc>
     <lastmod>2024-06-24T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/tesla/</loc>
@@ -78,9 +90,6 @@
     <lastmod>2024-02-19T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/tags/cloud-init/</loc>
-    <lastmod>2024-02-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>/tags/docker/</loc>
     <lastmod>2024-02-19T00:00:00+00:00</lastmod>
   </url><url>
     <loc>/links/</loc>

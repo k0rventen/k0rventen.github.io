@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Pi on k0rventen&#39;s blog</title>
+    <link>/tags/pi/</link>
+    <description>Recent content in Pi on k0rventen&#39;s blog</description>
+    <generator>Hugo -- 0.139.0</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 17 Dec 2024 21:33:39 +0100</lastBuildDate>
+    <atom:link href="/tags/pi/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>State of the Setup 2024</title>
+      <link>/posts/state-of-the-setup-2024/</link>
+      <pubDate>Tue, 17 Dec 2024 21:33:39 +0100</pubDate>
+      <guid>/posts/state-of-the-setup-2024/</guid>
+      <description>What&amp;#39;s running at home</description>
+    </item>
+  </channel>
+</rss>

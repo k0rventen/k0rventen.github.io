@@ -157,6 +157,20 @@
 
 <article class="post-entry"> 
   <header class="entry-header">
+    <h2 class="entry-hint-parent">Remote development in Kubernetes With Coder
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>A fleet of remote development environments (with docker, fish shell, and even minikube) running in your kubernetes cluster, accessible through VS Code in the browser !
+There should have been a video here but your browser does not seem to support it. What &amp; why This setup is the v2 of a previous post on remote dev env using jupyterlab I made a year and a half ago. Thee OG setup was functionnal, but it had some issues, mainly around user management, container lifecycle and persistent data handling. As $dayjob has grown, so has the infrastructure, and so has the development needs. So a new solution was required.
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2023-06-22 00:00:00 +0000 UTC'>June 22, 2023</span>&nbsp;·&nbsp;10 min&nbsp;·&nbsp;2061 words</footer>
+  <a class="entry-link" aria-label="post link to Remote development in Kubernetes With Coder" href="/posts/remote-env-with-coder/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
     <h2 class="entry-hint-parent">Contributing to the k8s documentation
     </h2>
   </header>
@@ -286,21 +300,6 @@ Applying this philosophy to kube is a very pertinent thing to do, but how ? The 
   </div>
   <footer class="entry-footer"><span title='2021-08-11 00:00:00 +0000 UTC'>August 11, 2021</span>&nbsp;·&nbsp;3 min&nbsp;·&nbsp;467 words</footer>
   <a class="entry-link" aria-label="post link to A Monkey in the Cluster" href="/posts/a-monkey-in-the-cluster/"></a>
-</article>
-
-<article class="post-entry"> 
-  <header class="entry-header">
-    <h2 class="entry-hint-parent">Exploring Kube&#39;s Horizontal Pod Autoscaler
-    </h2>
-  </header>
-  <div class="entry-content">
-    <p>what &amp; why Let’s say you have a scalable architecture (like a server/worker model), and you want autoscaling to happens automatically based on the workers CPU usage, which is useful is some scenarios. Kubernetes has an Horizontal Pod Autoscaler feature that we can utilize to do just that !
-how First, let’s talk requirements. You’ll need :
-a k8s cluster (k0s, minikube or microk8s), kubectl installed and configured to talk to your cluster metrics-server deployed. This will provide the metrics necessary for the autoscaling algorithm to work. Check on your particular provider how to do so. example architecture Here is an example architecture that can benefit from scaling :
-...</p>
-  </div>
-  <footer class="entry-footer"><span title='2021-07-27 00:00:00 +0000 UTC'>July 27, 2021</span>&nbsp;·&nbsp;5 min&nbsp;·&nbsp;930 words</footer>
-  <a class="entry-link" aria-label="post link to Exploring Kube&#39;s Horizontal Pod Autoscaler" href="/posts/kube-hpa/"></a>
 </article>
 <footer class="page-footer">
   <nav class="pagination">

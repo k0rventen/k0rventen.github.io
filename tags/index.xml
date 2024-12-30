@@ -6,8 +6,29 @@
     <description>Recent content in Tags on k0rventen&#39;s blog</description>
     <generator>Hugo -- 0.139.0</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 24 Jun 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 17 Dec 2024 21:33:39 +0100</lastBuildDate>
     <atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Docker</title>
+      <link>/tags/docker/</link>
+      <pubDate>Tue, 17 Dec 2024 21:33:39 +0100</pubDate>
+      <guid>/tags/docker/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Pi</title>
+      <link>/tags/pi/</link>
+      <pubDate>Tue, 17 Dec 2024 21:33:39 +0100</pubDate>
+      <guid>/tags/pi/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Selfhosted</title>
+      <link>/tags/selfhosted/</link>
+      <pubDate>Tue, 17 Dec 2024 21:33:39 +0100</pubDate>
+      <guid>/tags/selfhosted/</guid>
+      <description></description>
+    </item>
     <item>
       <title>Exfat</title>
       <link>/tags/exfat/</link>
@@ -139,13 +160,6 @@
       <link>/tags/cloud-init/</link>
       <pubDate>Mon, 19 Feb 2024 00:00:00 +0000</pubDate>
       <guid>/tags/cloud-init/</guid>
-      <description></description>
-    </item>
-    <item>
-      <title>Docker</title>
-      <link>/tags/docker/</link>
-      <pubDate>Mon, 19 Feb 2024 00:00:00 +0000</pubDate>
-      <guid>/tags/docker/</guid>
       <description></description>
     </item>
     <item>

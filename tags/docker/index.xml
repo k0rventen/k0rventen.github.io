@@ -6,8 +6,15 @@
     <description>Recent content in Docker on k0rventen&#39;s blog</description>
     <generator>Hugo -- 0.139.0</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 19 Feb 2024 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 17 Dec 2024 21:33:39 +0100</lastBuildDate>
     <atom:link href="/tags/docker/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>State of the Setup 2024</title>
+      <link>/posts/state-of-the-setup-2024/</link>
+      <pubDate>Tue, 17 Dec 2024 21:33:39 +0100</pubDate>
+      <guid>/posts/state-of-the-setup-2024/</guid>
+      <description>What&amp;#39;s running at home</description>
+    </item>
     <item>
       <title>Remote layer cache for multiple docker CI runners</title>
       <link>/posts/shared-docker-registry-ci/</link>
