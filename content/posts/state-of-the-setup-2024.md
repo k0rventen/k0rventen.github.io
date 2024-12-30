@@ -1,7 +1,6 @@
 ---
 title: "State of the Setup 2024"
 date: 2024-12-17T21:33:39+01:00
-draft: true
 description: "What's running at home"
 tags: ["selfhosted","pi","docker"]
 ---
