@@ -1,6 +1,5 @@
 baseURL: "/"
 title: k0rventen's blog
-paginate: 5
 theme: PaperMod
 
 enableRobotsTXT: true
